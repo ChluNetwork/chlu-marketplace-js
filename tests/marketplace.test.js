@@ -35,21 +35,22 @@ describe('Marketplace', () => {
         expect(mkt.chluIpfs.instance.vendor.storePublicKey.called).to.be.true;
         expect(mkt.chluIpfs.instance.vendor.signMultihash.called).to.be.true;
         // State
-        expect(mkt.vendors[response.id]).to.be.an('object');
-        expect(mkt.vendors[response.id].vendorPubKey.multihash).to.equal('fakepvmultihash');
-        expect(mkt.vendors[response.id].vendorMarketplaceKeyPairWIF)
+        const vendor = await mkt.db.getVendor(response.id);
+        expect(vendor).to.be.an('object');
+        expect(vendor.vendorPubKey.multihash).to.equal('fakepvmultihash');
+        expect(vendor.vendorMarketplaceKeyPairWIF)
             .to.be.a('string');
-        expect(mkt.vendors[response.id].vendorMarketplacePubKey.multihash)
+        expect(vendor.vendorMarketplacePubKey.multihash)
             .to.be.a('string');
-        expect(mkt.vendors[response.id].vendorMarketplacePubKey.marketplaceSignature)
+        expect(vendor.vendorMarketplacePubKey.marketplaceSignature)
             .to.be.a('string');
-        expect(mkt.vendors[response.id].vendorMarketplacePubKey.vendorSignature)
+        expect(vendor.vendorMarketplacePubKey.vendorSignature)
             .to.be.null;
         // Response
         expect(response.multihash)
-            .to.equal(mkt.vendors[response.id].vendorMarketplacePubKey.multihash);
+            .to.equal(vendor.vendorMarketplacePubKey.multihash);
         expect(response.marketplaceSignature)
-            .to.equal(mkt.vendors[response.id].vendorMarketplacePubKey.marketplaceSignature);
+            .to.equal(vendor.vendorMarketplacePubKey.marketplaceSignature);
         expect(response).to.be.an('object');
         expect(response.id).to.equal('fakepvmultihash');
     });
@@ -66,8 +67,9 @@ describe('Marketplace', () => {
             vendorData.multihash,
             'fakesignature'
         )).to.be.true;
-        expect(mkt.vendors[vendorData.id].vendorPubKey.multihash).to.equal('fakepvmultihash');
-        expect(mkt.vendors[vendorData.id].vendorMarketplacePubKey.vendorSignature).to.equal('fakesignature');
+        const vendor = await mkt.db.getVendor(vendorData.id);
+        expect(vendor.vendorPubKey.multihash).to.equal('fakepvmultihash');
+        expect(vendor.vendorMarketplacePubKey.vendorSignature).to.equal('fakesignature');
     });
 
     it.skip('can list vendors');

@@ -1,17 +1,18 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
+const DB = require('./db');
 const { ECPair } = require('bitcoinjs-lib');
 
 class Marketplace {
 
     constructor() {
-        this.vendors = {};
         this.events = new EventEmitter();
         this.started = false;
         this.starting = false;
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
         this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
+        this.db = new DB();
     }
 
     async start() {
@@ -21,8 +22,9 @@ class Marketplace {
             });
         } else if (!this.started) {
             this.starting = true;
-            await this.chluIpfs.start();
+            await Promise.all([this.db.start(), this.chluIpfs.start()]);
             this.starting = false;
+            this.started = true;
             this.events.emit('started');
         }
     }
@@ -46,16 +48,13 @@ class Marketplace {
         return Object.keys(this.vendors);
     }
 
-    getVendor(id) {
-        if (this.vendors[id]) {
-            return this.vendors[id].vendorMarketplacePubKey;
+    async getVendor(id) {
+        const vendor = await this.db.getVendor(id);
+        if (vendor) {
+            return vendor.vendorMarketplacePubKey;
         } else {
             throw new Error('Vendor with key ' + id + ' is not registered');
         }
-    }
-
-    clear() {
-        this.vendors = {};
     }
 
     async registerVendor(vendorPubKeyMultihash) {
@@ -67,7 +66,7 @@ class Marketplace {
         const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
         // TODO: pin
         const signature = await this.chluIpfs.instance.vendor.signMultihash(vendorPubKeyMultihash, keys.keyPair);
-        this.vendors[id] = {
+        const vendor = await this.db.createVendor(id, {
             vendorMarketplaceKeyPairWIF: vmKeyPair.toWIF(),
             vendorMarketplacePubKey: {
                 multihash: vmPubKeyMultihash,
@@ -77,25 +76,27 @@ class Marketplace {
             vendorPubKey: {
                 multihash: vendorPubKeyMultihash
             }
-        };
+        });
         const response = {
-            id,
-            multihash: vmPubKeyMultihash,
-            marketplaceSignature: signature
+            id: vendor.vendorPubKey.multihash,
+            multihash: vendor.vendorMarketplacePubKey.multihash,
+            marketplaceSignature: vendor.vendorMarketplacePubKey.marketplaceSignature 
         };
         return response;
     }
 
     async updateVendorSignature(vendorPubKeyMultihash, signature) {
         const id = vendorPubKeyMultihash;
-        if (this.vendors[id]) {
+        await this.start();
+        const vendor = await this.db.getVendor(id);
+        if (vendor) {
             // TODO: signature needs expiration date?
-            await this.start();
-            const PvmMultihash = this.vendors[id].vendorMarketplacePubKey.multihash;
+            const PvmMultihash = vendor.vendorMarketplacePubKey.multihash;
             const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
             if (valid) {
-                this.vendors[id].vendorPubKey.multihash = vendorPubKeyMultihash;
-                this.vendors[id].vendorMarketplacePubKey.vendorSignature = signature;
+                vendor.vendorPubKey.multihash = vendorPubKeyMultihash;
+                vendor.vendorMarketplacePubKey.vendorSignature = signature;
+                await this.db.updateVendor(id, vendor);
             } else {
                 throw new Error('Signature is not valid');
             }
