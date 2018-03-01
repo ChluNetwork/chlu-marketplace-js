@@ -13,7 +13,8 @@ describe('Marketplace', () => {
             instance: {
                 vendor: {
                     storePublicKey: sinon.stub().resolves('fakemultihash'),
-                    signMultihash: sinon.stub().resolves('fakesignature')
+                    signMultihash: sinon.stub().resolves('fakesignature'),
+                    verifyMultihash: sinon.stub().resolves(true)
                 }
             }
         };
@@ -28,13 +29,16 @@ describe('Marketplace', () => {
     });
 
     it('can register a new vendor', async () => {
-        const response = await mkt.registerVendor();
+        const response = await mkt.registerVendor('fakepvmultihash');
+        expect(response.id).to.equal('fakepvmultihash');
         // Calls
         expect(mkt.chluIpfs.instance.vendor.storePublicKey.called).to.be.true;
         expect(mkt.chluIpfs.instance.vendor.signMultihash.called).to.be.true;
         // State
         expect(mkt.vendors[response.id]).to.be.an('object');
-        expect(mkt.vendors[response.id].vendorPubKey.multihash).to.be.null;
+        expect(mkt.vendors[response.id].vendorPubKey.multihash).to.equal('fakepvmultihash');
+        expect(mkt.vendors[response.id].vendorMarketplaceKeyPairWIF)
+            .to.be.a('string');
         expect(mkt.vendors[response.id].vendorMarketplacePubKey.multihash)
             .to.be.a('string');
         expect(mkt.vendors[response.id].vendorMarketplacePubKey.marketplaceSignature)
@@ -47,6 +51,27 @@ describe('Marketplace', () => {
         expect(response.marketplaceSignature)
             .to.equal(mkt.vendors[response.id].vendorMarketplacePubKey.marketplaceSignature);
         expect(response).to.be.an('object');
-        expect(response.id).to.equal(1);
+        expect(response.id).to.equal('fakepvmultihash');
     });
+
+    it('can submit a vendor signature', async () => {
+        const vendorData = await mkt.registerVendor('fakepvmultihash');
+        await mkt.updateVendorSignature(
+            vendorData.id,
+            'fakesignature',
+            'fakepvmultihash'
+        );
+        expect(mkt.chluIpfs.instance.vendor.verifyMultihash.calledWith(
+            'fakepvmultihash',
+            vendorData.multihash,
+            'fakesignature'
+        )).to.be.true;
+        expect(mkt.vendors[vendorData.id].vendorPubKey.multihash).to.equal('fakepvmultihash');
+        expect(mkt.vendors[vendorData.id].vendorMarketplacePubKey.vendorSignature).to.equal('fakesignature');
+    });
+
+    it.skip('can list vendors');
+    it.skip('can retrieve vendor information');
+    it.skip('can retrieve the root keypair');
+    it.skip('can generate PoPRs');
 });

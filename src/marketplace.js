@@ -11,7 +11,6 @@ class Marketplace {
         this.starting = false;
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
-        this.progressiveID = 0;
         this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
     }
 
@@ -47,48 +46,62 @@ class Marketplace {
         return Object.keys(this.vendors);
     }
 
+    getVendor(id) {
+        if (this.vendors[id]) {
+            return this.vendors[id].vendorMarketplacePubKey;
+        } else {
+            throw new Error('Vendor with key ' + id + ' is not registered');
+        }
+    }
+
     clear() {
         this.vendors = {};
     }
 
-    async registerVendor() {
-        /*
-        TODO:
-        - Generates a key pair
-        - Signs it with marketplace secret key
-        - Sends response to vendor, who signs it and sends back to the marketplace
-        (maybe the wallet support lib should do this,
-        so that all the key generation stuff remains in one place)
-        - Marketplace publishes it on IPFS, including pinning it
-        - Response includes CID of the signed public key saved above
-        {publicKey: XX, signatures: [YY, YY], vendorId: ZZ, marketplacePublicKeyLocation: AA}
-        */
+    async registerVendor(vendorPubKeyMultihash) {
+        const id = vendorPubKeyMultihash;
         await this.start();
         const keys = await this.getKeys();
-        const vendorKeyPair = ECPair.makeRandom();
-        const pubKeyBuffer = vendorKeyPair.getPublicKeyBuffer();
-        const vendorPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
-        // TODO: request pin
+        const vmKeyPair = ECPair.makeRandom();
+        const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
+        const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
+        // TODO: pin
         const signature = await this.chluIpfs.instance.vendor.signMultihash(vendorPubKeyMultihash, keys.keyPair);
-        this.progressiveID++;
-        const id = this.progressiveID;
         this.vendors[id] = {
-            id,
+            vendorMarketplaceKeyPairWIF: vmKeyPair.toWIF(),
             vendorMarketplacePubKey: {
-                multihash: vendorPubKeyMultihash,
+                multihash: vmPubKeyMultihash,
                 marketplaceSignature: signature,
                 vendorSignature: null
             },
             vendorPubKey: {
-                multihash: null
+                multihash: vendorPubKeyMultihash
             }
         };
         const response = {
             id,
-            multihash: vendorPubKeyMultihash,
+            multihash: vmPubKeyMultihash,
             marketplaceSignature: signature
         };
         return response;
+    }
+
+    async updateVendorSignature(vendorPubKeyMultihash, signature) {
+        const id = vendorPubKeyMultihash;
+        if (this.vendors[id]) {
+            // TODO: signature needs expiration date?
+            await this.start();
+            const PvmMultihash = this.vendors[id].vendorMarketplacePubKey.multihash;
+            const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
+            if (valid) {
+                this.vendors[id].vendorPubKey.multihash = vendorPubKeyMultihash;
+                this.vendors[id].vendorMarketplacePubKey.vendorSignature = signature;
+            } else {
+                throw new Error('Signature is not valid');
+            }
+        } else {
+            throw new Error('Vendor with key ' + id + ' is not registered');
+        }
     }
 
     async generatePoPR() {
