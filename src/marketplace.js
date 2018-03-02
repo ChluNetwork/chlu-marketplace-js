@@ -1,18 +1,46 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
-const InMemoryDB = require('./db/inmemory');
+const DB = require('./db');
+const path = require('path');
+const fs = require('fs');
+const mkdirp = require('mkdirp');
 const { ECPair } = require('bitcoinjs-lib');
+
+const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'keypairwif.txt');
+
+async function ensureDir(dir) {
+    return await new Promise((resolve, reject) => {
+        mkdirp(dir, err => err ? reject(err) : resolve());
+    });
+}
+
+async function readFile(f) {
+    await ensureDir(path.dirname(f));
+    return await new Promise(resolve => {
+        fs.readFile(f, (err, data) => {
+            if (err) resolve(null); else resolve(data);
+        });
+    });
+}
+
+async function saveFile(f, data) {
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    return await new Promise((resolve, reject) => {
+        fs.writeFile(f, buffer, err => err ? reject(err) : resolve());
+    });
+}
 
 class Marketplace {
 
-    constructor() {
+    constructor(options = {}) {
         this.events = new EventEmitter();
         this.started = false;
         this.starting = false;
+        this.rootKeyPairPath = options.rootKeyPairPath || defaultRootKeyPairPath;
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
         this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
-        this.db = new InMemoryDB();
+        this.db = new DB(options.db);
     }
 
     async start() {
@@ -32,8 +60,14 @@ class Marketplace {
     async getKeys() {
         await this.start();
         if (!this.rootKeyPair) {
-            // TODO: load from fs
-            this.rootKeyPair = ECPair.makeRandom();
+            const fileBuffer = await readFile(this.rootKeyPairPath);
+            if (fileBuffer) {
+                const wif = fileBuffer.toString('utf-8');
+                this.rootKeyPair = ECPair.fromWIF(wif);
+            } else {
+                this.rootKeyPair = ECPair.makeRandom();
+                await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+            }
             const buffer = this.rootKeyPair.getPublicKeyBuffer();
             this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
             // TODO: request pin?
@@ -44,11 +78,13 @@ class Marketplace {
         }; 
     }
 
-    getVendorIDs() {
-        return Object.keys(this.vendors);
+    async getVendorIDs() {
+        await this.start();
+        return await this.db.getVendorIDs();
     }
 
     async getVendor(id) {
+        await this.start();
         const vendor = await this.db.getVendor(id);
         if (vendor) {
             return vendor.vendorMarketplacePubKey;
@@ -60,11 +96,11 @@ class Marketplace {
     async registerVendor(vendorPubKeyMultihash) {
         const id = vendorPubKeyMultihash;
         await this.start();
-        const keys = await this.getKeys();
         const vmKeyPair = ECPair.makeRandom();
         const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
         const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
         // TODO: pin
+        const keys = await this.getKeys();
         const signature = await this.chluIpfs.instance.vendor.signMultihash(vendorPubKeyMultihash, keys.keyPair);
         const vendor = await this.db.createVendor(id, {
             vmKeyPairWIF: vmKeyPair.toWIF(),
@@ -90,7 +126,6 @@ class Marketplace {
             const PvmMultihash = vendor.vmPubKeyMultihash;
             const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
             if (valid) {
-                vendor.vPubKeyMultihash = vendorPubKeyMultihash;
                 vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);
             } else {

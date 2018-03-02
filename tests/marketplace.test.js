@@ -73,6 +73,6 @@ describe('Marketplace', () => {
 
     it.skip('can list vendors');
     it.skip('can retrieve vendor information');
-    it.skip('can retrieve the root keypair');
+    it.skip('can create then reuse existing root keypair');
     it.skip('can generate PoPRs');
 });
