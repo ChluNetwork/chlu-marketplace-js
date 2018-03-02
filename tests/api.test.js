@@ -25,6 +25,9 @@ describe('HTTP API', () => {
             }),
             getKeys: sinon.stub().returns({
                 pubKeyMultihash: 'fakemultihash'
+            }),
+            createPoPR: sinon.stub().resolves({
+                signature: 'fakesignature'
             })
         };
         api = request(server);
@@ -75,4 +78,12 @@ describe('HTTP API', () => {
         expect(mkt.updateVendorSignature.calledWith('ven1', 'fakevendorsignature'))
             .to.be.true;
     });
+
+    it('POST /vendors/ven1/popr', async () => {
+        await api.post('/vendors/ven1/popr')
+            .send({
+                amount: 521
+            })
+            .expect(200);
+    })
 });

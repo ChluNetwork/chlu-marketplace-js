@@ -23,8 +23,8 @@ app.get('/vendors/:id', (req, res) => {
     res.json(app.locals.mkt.getVendor(req.params.id));
 });
 
-app.get('/vendors/:id/popr', async (req, res) => {
-    res.json(await app.locals.mkt.generatePoPR(req.params.id));
+app.post('/vendors/:id/popr', async (req, res) => {
+    res.json(await app.locals.mkt.createPoPR(req.params.id, req.body || {}));
 });
 
 app.get('/.well-known', async (req, res) => {
