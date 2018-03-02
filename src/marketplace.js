@@ -1,6 +1,6 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
-const DB = require('./db');
+const InMemoryDB = require('./db/inmemory');
 const { ECPair } = require('bitcoinjs-lib');
 
 class Marketplace {
@@ -12,7 +12,7 @@ class Marketplace {
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
         this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
-        this.db = new DB();
+        this.db = new InMemoryDB();
     }
 
     async start() {
@@ -67,20 +67,16 @@ class Marketplace {
         // TODO: pin
         const signature = await this.chluIpfs.instance.vendor.signMultihash(vendorPubKeyMultihash, keys.keyPair);
         const vendor = await this.db.createVendor(id, {
-            vendorMarketplaceKeyPairWIF: vmKeyPair.toWIF(),
-            vendorMarketplacePubKey: {
-                multihash: vmPubKeyMultihash,
-                marketplaceSignature: signature,
-                vendorSignature: null
-            },
-            vendorPubKey: {
-                multihash: vendorPubKeyMultihash
-            }
+            vmKeyPairWIF: vmKeyPair.toWIF(),
+            vmPubKeyMultihash,
+            mSignature: signature,
+            vSignature: null,
+            vPubKeyMultihash: id
         });
         const response = {
-            id: vendor.vendorPubKey.multihash,
-            multihash: vendor.vendorMarketplacePubKey.multihash,
-            marketplaceSignature: vendor.vendorMarketplacePubKey.marketplaceSignature 
+            vPubKeyMultihash: vendor.vPubKeyMultihash,
+            vmPubKeyMultihash: vendor.vmPubKeyMultihash,
+            mSignature: vendor.mSignature 
         };
         return response;
     }
@@ -91,11 +87,11 @@ class Marketplace {
         const vendor = await this.db.getVendor(id);
         if (vendor) {
             // TODO: signature needs expiration date?
-            const PvmMultihash = vendor.vendorMarketplacePubKey.multihash;
+            const PvmMultihash = vendor.vmPubKeyMultihash;
             const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
             if (valid) {
-                vendor.vendorPubKey.multihash = vendorPubKeyMultihash;
-                vendor.vendorMarketplacePubKey.vendorSignature = signature;
+                vendor.vPubKeyMultihash = vendorPubKeyMultihash;
+                vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);
             } else {
                 throw new Error('Signature is not valid');

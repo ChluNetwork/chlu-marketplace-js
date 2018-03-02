@@ -1,4 +1,5 @@
 
+
 module.exports = class DB {
     
     async start() {
@@ -19,6 +20,6 @@ module.exports = class DB {
     }
 
     async updateVendor(id, data) {
-        return this.vendors[id] = data;
+        return this.vendors[id] = Object.assign(this.vendors[id], data);
     }
 };
