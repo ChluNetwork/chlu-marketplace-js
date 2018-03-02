@@ -73,6 +73,18 @@ class DB {
         return null;
     }
 
+    async getVMKeyPairWIF(id) {
+        const vendor = await this.Vendor.findOne({
+            where: {
+                vPubKeyMultihash: id
+            }
+        });
+        if (vendor) {
+            return vendor.get('vmKeyPairWIF');
+        }
+        return null;
+    }
+
     async createVendor(id, data) {
         const vendor = await this.Vendor
             .create(Object.assign({}, data, { vPubKeyMultihash: id }));

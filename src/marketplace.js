@@ -104,6 +104,12 @@ class Marketplace {
         }
     }
 
+    async getVMKeyPair(vendorId) {
+        await this.start();
+        const wif = await this.db.getVMKeyPairWIF(vendorId);
+        return ECPair.fromWIF(wif);
+    }
+
     async registerVendor(vendorPubKeyMultihash) {
         const id = vendorPubKeyMultihash;
         await this.start();
@@ -147,7 +153,7 @@ class Marketplace {
         }
     }
 
-    async generatePoPR() {
+    async createPoPR(vendorId, options = {}) {
         /*
         TODO:
         - Use the vendor secret key that maps to the vendor specified in the request above
@@ -156,7 +162,25 @@ class Marketplace {
         That means in the long run we get to the customer payment screen only from the checkout page
         */
         await this.start();
-        throw new Error('Not implemented yet');
+        const vendor = await this.getVendor(vendorId);
+        const popr = {
+            item_id: options.item_id || 'N/A',
+            invoice_id: options.invoice_id || 'N/A',
+            customer_id: options.customer_id || 'N/A',
+            created_at: options.created_at || Date.now(),
+            expires_at: options.expires_at || 0,
+            currency_symbol: options.currency_symbol || 'N/A',
+            amount: options.amount || 0,
+            marketplace_url: '/.well-known',
+            marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
+            key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
+            chlu_version: 0,
+            attributes: [],
+            signature: ''
+        };
+        const keyPair = await this.getVMKeyPair(vendorId);
+        const signedPoPR = await this.chluIpfs.instance.vendor.signPoPR(popr, keyPair);
+        return signedPoPR;
     }
 }
 

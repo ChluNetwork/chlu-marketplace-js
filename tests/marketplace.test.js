@@ -20,7 +20,13 @@ describe('Marketplace', () => {
                 vendor: {
                     storePublicKey: sinon.stub().resolves('fakemultihash'),
                     signMultihash: sinon.stub().resolves('fakesignature'),
-                    verifyMultihash: sinon.stub().resolves(true)
+                    verifyMultihash: sinon.stub().resolves(true),
+                    signPoPR: sinon.stub().callsFake(async popr => {
+                        return Object.assign(popr, {
+                            signature: 'fakesignature'
+                        });
+                    }),
+                    verifyPoPR: sinon.stub().resolves(true)
                 }
             }
         };
@@ -125,5 +131,24 @@ describe('Marketplace', () => {
         expect(differentKeys.keyPair.toWIF()).to.not.equal(wif);
     });
 
-    it.skip('can generate PoPRs');
+    it('can create PoPRs', async () => {
+        const v = await mkt.registerVendor('fakepvmultihash');
+        const popr = await mkt.createPoPR('fakepvmultihash');
+        // Calls
+        expect(mkt.chluIpfs.instance.vendor.signPoPR.called).to.be.true;
+        // Schema
+        expect(popr.item_id).to.be.a('string');
+        expect(popr.invoice_id).to.be.a('string');
+        expect(popr.customer_id).to.be.a('string');
+        expect(popr.created_at).to.be.a('number');
+        expect(popr.expires_at).to.be.a('number');
+        expect(popr.currency_symbol).to.be.a('string');
+        expect(popr.amount).to.be.a('number');
+        expect(popr.marketplace_url).to.be.a('string');
+        expect(popr.marketplace_vendor_url).to.be.a('string');
+        expect(popr.key_location).to.equal('/ipfs/' + v.vmPubKeyMultihash);
+        expect(popr.chlu_version).to.equal(0);
+        expect(Array.isArray(popr.attributes)).to.be.true;
+        expect(popr.signature).to.equal('fakesignature');
+    });
 });
