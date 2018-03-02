@@ -2,12 +2,18 @@
 const expect = require('chai').expect;
 const sinon = require('sinon');
 const Marketplace = require('../src/marketplace');
+const rimraf = require('rimraf');
+const path = require('path');
+const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 
 describe('Marketplace', () => {
     let mkt;
 
     beforeEach(() => {
-        mkt = new Marketplace();
+        rimraf.sync(keyFile);
+        mkt = new Marketplace({
+            rootKeyPairPath: keyFile
+        });
         mkt.chluIpfs = {
             start: sinon.stub().resolves(),
             instance: {
@@ -71,8 +77,53 @@ describe('Marketplace', () => {
         expect(vendor.vSignature).to.equal('fakesignature');
     });
 
-    it.skip('can list vendors');
-    it.skip('can retrieve vendor information');
-    it.skip('can create then reuse existing root keypair');
+    it('can list vendors', async () => {
+        await mkt.registerVendor('fakepvmultihash');
+        const vendors = await mkt.getVendorIDs();
+        expect(vendors).to.deep.equal(['fakepvmultihash']);
+    });
+
+    it('can retrieve vendor information', async() => {
+        await mkt.registerVendor('fakepvmultihash');
+        const vendor = await mkt.getVendor('fakepvmultihash');
+        // Intentionally check that the keypair is not returned
+        expect(vendor).to.deep.equal({
+            vmPubKeyMultihash: 'fakemultihash',
+            vPubKeyMultihash: 'fakepvmultihash',
+            vSignature: null,
+            mSignature: 'fakesignature'
+        });
+    });
+
+    it('can create then reuse existing root keypair', async () => {
+        expect(mkt.rootKeyPair).to.be.null;
+        expect(mkt.pubKeyMultihash).to.be.null;
+        const keys = await mkt.getKeys();
+        expect(keys.source).to.equal('random');
+        expect(keys.keyPair).to.be.a('object');
+        expect(keys.pubKeyMultihash).to.be.a('string');
+        expect(keys.keyPair).to.equal(mkt.rootKeyPair);
+        expect(keys.pubKeyMultihash).to.equal(mkt.pubKeyMultihash);
+        const wif = keys.keyPair.toWIF();
+        // Load from memory the same keys
+        const sameKeys = await mkt.getKeys();
+        expect(sameKeys.source).to.equal('memory');
+        expect(sameKeys.keyPair.toWIF()).to.equal(wif);
+        // Delete keys from memory to see if loading from fs works
+        mkt.rootKeyPair = undefined;
+        mkt.pubKeyMultihash = undefined;
+        const fsKeys = await mkt.getKeys();
+        expect(fsKeys.source.substring(0, 2)).to.equal('fs');
+        expect(fsKeys.keyPair.toWIF()).to.equal(wif);
+        // Now delete keyfile and keys
+        rimraf.sync(keyFile);
+        mkt.rootKeyPair = undefined;
+        mkt.pubKeyMultihash = undefined;
+        // Should get a random key
+        const differentKeys = await mkt.getKeys();
+        expect(differentKeys.source).to.equal('random');
+        expect(differentKeys.keyPair.toWIF()).to.not.equal(wif);
+    });
+
     it.skip('can generate PoPRs');
 });

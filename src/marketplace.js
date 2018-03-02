@@ -59,14 +59,17 @@ class Marketplace {
 
     async getKeys() {
         await this.start();
+        let source = 'memory';
         if (!this.rootKeyPair) {
             const fileBuffer = await readFile(this.rootKeyPairPath);
             if (fileBuffer) {
                 const wif = fileBuffer.toString('utf-8');
                 this.rootKeyPair = ECPair.fromWIF(wif);
+                source = 'fs:' + this.rootKeyPairPath;
             } else {
                 this.rootKeyPair = ECPair.makeRandom();
                 await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+                source = 'random';
             }
             const buffer = this.rootKeyPair.getPublicKeyBuffer();
             this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
@@ -74,7 +77,8 @@ class Marketplace {
         }
         return {
             keyPair: this.rootKeyPair,
-            pubKeyMultihash: this.pubKeyMultihash
+            pubKeyMultihash: this.pubKeyMultihash,
+            source
         }; 
     }
 
@@ -85,9 +89,16 @@ class Marketplace {
 
     async getVendor(id) {
         await this.start();
-        const vendor = await this.db.getVendor(id);
-        if (vendor) {
-            return vendor.vendorMarketplacePubKey;
+        const v = await this.db.getVendor(id);
+        if (v) {
+            // the full keypair is omitted intentionally
+            // so it does not get out by mistake
+            return {
+                mSignature: v.mSignature,
+                vPubKeyMultihash: v.vPubKeyMultihash,
+                vSignature: v.vSignature,
+                vmPubKeyMultihash: v.vmPubKeyMultihash
+            };
         } else {
             throw new Error('Vendor with key ' + id + ' is not registered');
         }

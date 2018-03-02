@@ -60,7 +60,16 @@ class DB {
                 vPubKeyMultihash: id
             }
         });
-        if (vendor) return vendor.toJSON();
+        if (vendor) {
+            const v = vendor.toJSON();
+            return {
+                mSignature: v.mSignature,
+                vPubKeyMultihash: v.vPubKeyMultihash,
+                vSignature: v.vSignature,
+                vmPubKeyMultihash: v.vmPubKeyMultihash,
+                vmKeyPairWIF: v.vmKeyPairWIF
+            };
+        }
         return null;
     }
 
