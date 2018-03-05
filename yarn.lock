@@ -750,9 +750,9 @@ check-error@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/check-error/-/check-error-1.0.2.tgz#574d312edd88bb5dd8912e9286dd6c0aed4aac82"
 
-"chlu-ipfs-support@https://github.com/ChluNetwork/chlu-ipfs-support.git":
+"chlu-ipfs-support@https://github.com/ChluNetwork/chlu-ipfs-support.git#fix-vendor":
   version "0.1.0"
-  resolved "https://github.com/ChluNetwork/chlu-ipfs-support.git#1f41c044d1932290d9d3dfeb30c42b0745ed269f"
+  resolved "https://github.com/ChluNetwork/chlu-ipfs-support.git#273a50856e48def69907af93e8c521a47e4e289c"
   dependencies:
     bitcoinjs-lib "^3.3.2"
     ipfs "~0.27.7"
@@ -3422,6 +3422,30 @@ libp2p-webrtc-star@~0.13.3:
     socket.io-client "^2.0.4"
     stream-to-pull-stream "^1.7.2"
     webrtcsupport "github:ipfs/webrtcsupport"
+
+libp2p-websocket-star-rendezvous@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/libp2p-websocket-star-rendezvous/-/libp2p-websocket-star-rendezvous-0.2.3.tgz#f59fab9a39d52715c703180619dcb1f0ebe1c921"
+  dependencies:
+    async "^2.6.0"
+    data-queue "0.0.3"
+    debug "^3.1.0"
+    epimetheus "^1.0.55"
+    hapi "^16.6.2"
+    inert "^4.2.1"
+    libp2p-crypto "^0.12.1"
+    mafmt "^4.0.0"
+    merge-recursive "0.0.3"
+    minimist "^1.2.0"
+    multiaddr "^3.0.2"
+    once "^1.4.0"
+    peer-id "^0.10.6"
+    peer-info "^0.11.6"
+    prom-client "^10.2.2"
+    socket.io "^2.0.4"
+    socket.io-client "^2.0.4"
+    socket.io-pull-stream "^0.1.4"
+    uuid "^3.2.1"
 
 libp2p-websocket-star@~0.7.2:
   version "0.7.7"

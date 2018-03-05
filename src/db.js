@@ -54,6 +54,10 @@ class DB {
         }
     }
 
+    async stop() {
+        if (this.db) await this.db.close();
+    }
+
     async getVendorIDs() {
         const data = await this.Vendor.findAll({
             attributes: ['vPubKeyMultihash']

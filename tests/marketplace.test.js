@@ -17,8 +17,11 @@ describe('Marketplace', () => {
                 storage: ':memory:'
             }
         });
+        sinon.spy(mkt.db, 'start');
+        sinon.spy(mkt.db, 'stop');
         mkt.chluIpfs = {
             start: sinon.stub().resolves(),
+            stop: sinon.stub().resolves(),
             instance: {
                 vendor: {
                     storePublicKey: sinon.stub().resolves('fakemultihash'),
@@ -37,10 +40,30 @@ describe('Marketplace', () => {
 
     it('starts correctly', done => {
         mkt.events.on('started', () => {
-            expect(mkt.chluIpfs.start.called).to.be.true;
-            done();
+            try {
+                expect(mkt.chluIpfs.start.called).to.be.true;
+                expect(mkt.db.start.called).to.be.true;
+                done();
+            } catch (err) {
+                done(err);
+            }
         });
         expect(mkt.start()).to.be.a('promise');
+    });
+
+    it('stops correctly', done => {
+        // Fake started status
+        mkt.started = true;
+        mkt.events.on('stopped', () => {
+            try {
+                expect(mkt.chluIpfs.stop.called).to.be.true;
+                expect(mkt.db.stop.called).to.be.true;
+                done();
+            } catch (err) {
+                done(err);
+            }
+        });
+        expect(mkt.stop()).to.be.a('promise');
     });
 
     it('can register a new vendor', async () => {

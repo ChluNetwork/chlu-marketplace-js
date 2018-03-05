@@ -12,9 +12,8 @@ const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace
  * integrating an existing e-commerce marketplace with
  * the chlu protocol. 
  * 
- * Remember to call .start() after setting it up
- * 
  * @param {Object} options optional configuration
+ * @param {Object} options.chluIpfs extra options for the ChluIPFS node
  * @param {string} options.rootKeyPairPath path to the file which will store the key pair
  * for this marketplace. Make sure the file is adeguately protected. By default it will
  * be stored in `~/.chlu/marketplace/`. Pass `false` to disable persistence
@@ -39,6 +38,8 @@ class Marketplace {
         this.events = new EventEmitter();
         this.started = false;
         this.starting = false;
+        this.stopping = false;
+        this.stopped = true;
         if (options.rootKeyPairPath === false) {
             this.rootKeyPairPath = false;
         } else {
@@ -46,28 +47,50 @@ class Marketplace {
         }
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
-        this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
+        const opt = options.chluIpfs || {};
+        this.chluIpfs = new ChluIPFS(Object.assign({}, opt, { type: ChluIPFS.types.marketplace }));
         this.db = new DB(options.db);
     }
 
     /**
      * Starts ChluIPFS submodule and DB connection.
      * Will be automatically called if you use other methods
+     * that require the Marketplace to be started
      * 
      * @memberof Marketplace
      * @returns {Promise}
      */
     async start() {
-        if (this.starting) {
+        if (this.stopping) {
+            throw new Error('Cannot start Marketplace while it is stopping');
+        } else if (this.starting) {
             await new Promise(resolve => {
                 this.events.once('started', resolve);
             });
         } else if (!this.started) {
+            this.stopped = false;
             this.starting = true;
             await Promise.all([this.db.start(), this.chluIpfs.start()]);
             this.starting = false;
             this.started = true;
             this.events.emit('started');
+        }
+    }
+
+    async stop() {
+        if (this.starting) {
+            throw new Error('Cannot stop Marketplace while it is starting');
+        } else if (this.stopping) {
+            await new Promise(resolve => {
+                this.events.once('stopped', resolve);
+            });
+        } else {
+            this.started = false;
+            this.stopping = true;
+            await Promise.all([this.db.stop(), this.chluIpfs.stop()]);
+            this.stopping = false;
+            this.stopped = true;
+            this.events.emit('stopped');
         }
     }
 
@@ -184,7 +207,7 @@ class Marketplace {
         const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
         // TODO: pin
         const keys = await this.getKeys();
-        const signature = await this.chluIpfs.instance.vendor.signMultihash(vendorPubKeyMultihash, keys.keyPair);
+        const signature = await this.chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keys.keyPair);
         const vendor = await this.db.createVendor(id, {
             vmKeyPairWIF: vmKeyPair.toWIF(),
             vmPubKeyMultihash,
