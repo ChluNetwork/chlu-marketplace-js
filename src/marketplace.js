@@ -2,47 +2,61 @@ const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
 const DB = require('./db');
 const path = require('path');
-const fs = require('fs');
-const mkdirp = require('mkdirp');
 const { ECPair } = require('bitcoinjs-lib');
+const { readFile, saveFile } = require('./utils');
 
 const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'keypairwif.txt');
 
-async function ensureDir(dir) {
-    return await new Promise((resolve, reject) => {
-        mkdirp(dir, err => err ? reject(err) : resolve());
-    });
-}
-
-async function readFile(f) {
-    await ensureDir(path.dirname(f));
-    return await new Promise(resolve => {
-        fs.readFile(f, (err, data) => {
-            if (err) resolve(null); else resolve(data);
-        });
-    });
-}
-
-async function saveFile(f, data) {
-    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-    return await new Promise((resolve, reject) => {
-        fs.writeFile(f, buffer, err => err ? reject(err) : resolve());
-    });
-}
-
+/**
+ * Chlu Marketplace provides the required methods for
+ * integrating an existing e-commerce marketplace with
+ * the chlu protocol. 
+ * 
+ * Remember to call .start() after setting it up
+ * 
+ * @param {Object} options optional configuration
+ * @param {string} options.rootKeyPairPath path to the file which will store the key pair
+ * for this marketplace. Make sure the file is adeguately protected. By default it will
+ * be stored in `~/.chlu/marketplace/`. Pass `false` to disable persistence
+ * @param {object} options.db database connection information, will be passed to the DB
+ * class. It is also possible to override the DB by replacing the `db` property of the
+ * instance of this class after creating it, but before calling `start`
+ * @param {string} options.db.adapter Sequelize adapter. Defaults to SQLite, to use others
+ * you will have to install the module following Sequelize's documentation
+ * @param {string} options.db.dbName defaults to `chlu` 
+ * @param {string} options.db.host defaults to `localhost` 
+ * @param {integer} options.db.port
+ * @param {string} options.db.username
+ * @param {string} options.db.password
+ * @param {string} options.db.storage where to put the SQLite DB. Defaults to
+ * `~/.chlu/marketplace/db.sqlite`. Pass `false` to disable storage and keep
+ * it in memory.
+ * 
+ */
 class Marketplace {
 
     constructor(options = {}) {
         this.events = new EventEmitter();
         this.started = false;
         this.starting = false;
-        this.rootKeyPairPath = options.rootKeyPairPath || defaultRootKeyPairPath;
+        if (options.rootKeyPairPath === false) {
+            this.rootKeyPairPath = false;
+        } else {
+            this.rootKeyPairPath = options.rootKeyPairPath || defaultRootKeyPairPath;
+        }
         this.rootKeyPair = null;
         this.pubKeyMultihash = null;
         this.chluIpfs = new ChluIPFS({ type: ChluIPFS.types.marketplace });
         this.db = new DB(options.db);
     }
 
+    /**
+     * Starts ChluIPFS submodule and DB connection.
+     * Will be automatically called if you use other methods
+     * 
+     * @memberof Marketplace
+     * @returns {Promise}
+     */
     async start() {
         if (this.starting) {
             await new Promise(resolve => {
@@ -57,18 +71,39 @@ class Marketplace {
         }
     }
 
+    /**
+     * @typedef {Object} KeyPair
+     * @property {ECPair} keyPair the actual key pair
+     * @property {string} pubKeyMultihash the multihash that can be used to get the PubKey from IPFS
+     * @property {string} source where this comes from. Can be `random`, `memory`, or `fs:(path)`
+     */
+
+    /**
+     * Gets your keypair and related information. If the keypair
+     * was not already loaded, it is loaded from the file system.
+     * If this fails or is not available, then a new key pair is
+     * generated.
+     * 
+     * @memberof Marketplace
+     * @returns {Promise<KeyPair>}
+     */
     async getKeys() {
         await this.start();
         let source = 'memory';
         if (!this.rootKeyPair) {
-            const fileBuffer = await readFile(this.rootKeyPairPath);
+            let fileBuffer = null;
+            if (this.rootKeyPairPath !== false) {
+                fileBuffer = await readFile(this.rootKeyPairPath);
+            }
             if (fileBuffer) {
                 const wif = fileBuffer.toString('utf-8');
                 this.rootKeyPair = ECPair.fromWIF(wif);
                 source = 'fs:' + this.rootKeyPairPath;
             } else {
                 this.rootKeyPair = ECPair.makeRandom();
-                await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+                if (this.rootKeyPairPath !== false) {
+                    await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+                }
                 source = 'random';
             }
             const buffer = this.rootKeyPair.getPublicKeyBuffer();
@@ -82,11 +117,35 @@ class Marketplace {
         }; 
     }
 
+    /**
+     * Get the list of vendors that is registered in this
+     * marketplace. The ID used to identify each vendor
+     * is the multihash of their public key, which can be
+     * used to get the pub key from IPFS.
+     * 
+     * @returns {Array.<string>}
+     * @memberof Marketplace
+     */
     async getVendorIDs() {
         await this.start();
         return await this.db.getVendorIDs();
     }
 
+    /**
+     * @typedef {Object} Vendor
+     * @property {string} vPubKeyMultihash the multihash of the vendor key (aka Vendor ID)
+     * @property {string} vmPubKeyMultihash the multihash of the vendor-marketplace key
+     * @property {string} mSignature hex encoded signature of the marketplace for the vendor-marketplace key
+     * @property {string} vSignature hex encoded signature of the vendor for the vendor-marketplace key
+     */
+
+    /**
+     * Get public data about a specific vendor
+     * 
+     * @param {string} id the multihash of this vendor's pub key, aka their ID
+     * @returns {Promise<Vendor>}
+     * @memberof Marketplace
+     */
     async getVendor(id) {
         await this.start();
         const v = await this.db.getVendor(id);
@@ -104,6 +163,13 @@ class Marketplace {
         }
     }
 
+    /**
+     * Get the vendor-marketplace key pair for a vendor
+     * 
+     * @param {string} vendorId the vendor's public key multihash
+     * @returns {Promise<ECPair>}
+     * @memberof Marketplace
+     */
     async getVMKeyPair(vendorId) {
         await this.start();
         const wif = await this.db.getVMKeyPairWIF(vendorId);
@@ -134,6 +200,30 @@ class Marketplace {
         return response;
     }
 
+    /**
+     * @typedef {Object} PoPR
+     * @param {string} item_id
+     * @property {string} invoice_id
+     * @property {string} customer_id
+     * @property {integer} created_at
+     * @property {integer} expires_at
+     * @property {string} currency_symbol
+     * @property {integer} amount
+     * @property {string} marketplace_url
+     * @property {string} marketplace_vendor_url
+     * @property {string} key_location
+     * @property {string} hash calculated automatically
+     * @property {string} signature applied automatically
+     */
+
+    /**
+     * Create/Update the vendor signature for a vendor-marketplace key
+     * 
+     * @param {string} vendorId the vendor's public key multihash
+     * @returns {Promise}
+     * @throws {Error} if the signature is not valid or the vendor does not exist
+     * @memberof Marketplace
+     */
     async updateVendorSignature(vendorPubKeyMultihash, signature) {
         const id = vendorPubKeyMultihash;
         await this.start();
@@ -153,6 +243,24 @@ class Marketplace {
         }
     }
 
+    /**
+     * Create a Proof of Payment Request for a vendor.
+     * 
+     * @param {string} vendorId the vendor's public key multihash
+     * @param {object} [options={}]
+     * @param {string} options.item_id
+     * @param {string} options.invoice_id
+     * @param {string} options.customer_id
+     * @param {integer} options.created_at
+     * @param {integer} options.expires_at
+     * @param {string} options.currency_symbol
+     * @param {integer} options.amount
+     * @param {string} options.marketplace_url
+     * @param {string} options.marketplace_vendor_url
+     * @param {string} options.key_location
+     * @returns {Promise<PoPR>}
+     * @memberof Marketplace
+     */
     async createPoPR(vendorId, options = {}) {
         /*
         TODO:

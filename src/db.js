@@ -1,23 +1,30 @@
 const Sequelize = require('sequelize');
-const Op = Sequelize.Op;
+const path = require('path');
+const { ensureDir } = require('./utils');
 
+const defaultDBPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'db.sqlite');
 class DB {
 
     constructor(options = {}) {
-        this.storage = options.storage || ':memory:';
+        this.storage = options.storage || defaultDBPath;
         this.dialect = options.dialect || 'sqlite';
         this.username = options.username || 'username';
         this.password = options.username || 'password';
         this.host = options.host || 'localhost';
+        this.port = options.port;
         this.dbName = options.dbName || 'chlu';
     }
     
     async start() {
         if(!this.db) {
+            if (!this.storage !== ':memory:') {
+                await ensureDir(path.dirname(this.storage));
+            }
             this.db = new Sequelize(this.dbName, this.username, this.password, {
                 dialect: this.dialect,
                 storage: this.storage,
                 host: this.host,
+                port: this.port,
                 logging: this.logging || false,
                 operatorsAliases: false
             });
@@ -103,6 +110,6 @@ class DB {
         }
         return false;
     }
-};
+}
 
 module.exports = DB;

@@ -1,7 +1,7 @@
 
 const expect = require('chai').expect;
 const sinon = require('sinon');
-const Marketplace = require('../src/marketplace');
+const Marketplace = require('../src');
 const rimraf = require('rimraf');
 const path = require('path');
 const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
@@ -12,7 +12,10 @@ describe('Marketplace', () => {
     beforeEach(() => {
         rimraf.sync(keyFile);
         mkt = new Marketplace({
-            rootKeyPairPath: keyFile
+            rootKeyPairPath: keyFile,
+            db: {
+                storage: ':memory:'
+            }
         });
         mkt.chluIpfs = {
             start: sinon.stub().resolves(),

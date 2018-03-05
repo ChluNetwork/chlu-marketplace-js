@@ -6,7 +6,7 @@ describe('HTTP API', () => {
     let api, mkt;
 
     beforeEach(() => {
-        const server = require('../src');
+        const server = require('../src/server');
         mkt = server.locals.mkt = {
             registerVendor: sinon.stub().resolves({
                 id: 'pvmultihash',
