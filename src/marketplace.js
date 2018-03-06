@@ -131,6 +131,7 @@ class Marketplace {
             }
             const buffer = this.rootKeyPair.getPublicKeyBuffer();
             this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
+            this.chluIpfs.pin(this.pubKeyMultihash);
             // TODO: request pin?
         }
         return {
@@ -205,7 +206,9 @@ class Marketplace {
         const vmKeyPair = ECPair.makeRandom();
         const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
         const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
-        // TODO: pin
+        this.chluIpfs.pin(vmPubKeyMultihash);
+        this.chluIpfs.pin(vendorPubKeyMultihash);
+        // TODO: request pin?
         const keys = await this.getKeys();
         const signature = await this.chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keys.keyPair);
         const vendor = await this.db.createVendor(id, {

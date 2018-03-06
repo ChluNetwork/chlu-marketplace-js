@@ -6,7 +6,7 @@ const rimraf = require('rimraf');
 const path = require('path');
 const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 
-describe('Marketplace', () => {
+describe('Marketplace (Unit)', () => {
     let mkt;
 
     beforeEach(() => {
@@ -22,6 +22,7 @@ describe('Marketplace', () => {
         mkt.chluIpfs = {
             start: sinon.stub().resolves(),
             stop: sinon.stub().resolves(),
+            pin: sinon.stub().resolves(),
             instance: {
                 vendor: {
                     storePublicKey: sinon.stub().resolves('fakemultihash'),
@@ -72,6 +73,8 @@ describe('Marketplace', () => {
         // Calls
         expect(mkt.chluIpfs.instance.vendor.storePublicKey.called).to.be.true;
         expect(mkt.chluIpfs.instance.vendor.signMultihash.called).to.be.true;
+        expect(mkt.chluIpfs.pin.calledWith('fakepvmultihash')).to.be.true;
+        expect(mkt.chluIpfs.pin.calledWith('fakemultihash')).to.be.true;
         // State
         const vendor = await mkt.db.getVendor(response.vPubKeyMultihash);
         expect(vendor).to.be.an('object');
@@ -131,6 +134,7 @@ describe('Marketplace', () => {
         expect(mkt.rootKeyPair).to.be.null;
         expect(mkt.pubKeyMultihash).to.be.null;
         const keys = await mkt.getKeys();
+        expect(mkt.chluIpfs.pin.calledWith(mkt.pubKeyMultihash)).to.be.true;
         expect(keys.source).to.equal('random');
         expect(keys.keyPair).to.be.a('object');
         expect(keys.pubKeyMultihash).to.be.a('string');

@@ -31,7 +31,7 @@ describe('Marketplace (Integration)', () => {
                 logger: {
                     debug: () => {},
                     info: () => {},
-                    warn: msg => console.log('[ChluIPFS][WARN]', msg),
+                    warn: () => {},
                     error: msg => console.log('[ChluIPFS][ERROR]', msg)
                 },
                 directory: tmpDir,
