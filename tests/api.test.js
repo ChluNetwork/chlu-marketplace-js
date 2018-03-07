@@ -15,15 +15,15 @@ describe('HTTP API', () => {
             }),
             updateVendorSignature: sinon.stub().resolves(),
             generatePoPR: sinon.stub().resolves(),
-            getVendorIDs: sinon.stub().returns([
+            getVendorIDs: sinon.stub().resolves([
                 'ven1', 'ven2'
             ]),
-            getVendor: sinon.stub().returns({
+            getVendor: sinon.stub().resolves({
                 multihash: 'fakemultihash',
                 marketplaceSignature: 'fakesignature',
                 vendorSignature: null
             }),
-            getKeys: sinon.stub().returns({
+            getKeys: sinon.stub().resolves({
                 pubKeyMultihash: 'fakemultihash'
             }),
             createPoPR: sinon.stub().resolves({

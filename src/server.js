@@ -8,8 +8,8 @@ app.use(bodyParser.json());
 
 app.get('/', (req, res) => res.send('Chlu Marketplace'));
 
-app.get('/vendors', (req, res) => {
-    res.json(app.locals.mkt.getVendorIDs());
+app.get('/vendors', async (req, res) => {
+    res.json(await app.locals.mkt.getVendorIDs());
 });
 app.post('/vendors', async (req, res) => {
     const pubKeyMultihash = req.body.vendorPubKeyMultihash;
@@ -19,8 +19,8 @@ app.post('/vendors/:id/signature', async (req, res) => {
     const signature = req.body.signature;
     res.json(await app.locals.mkt.updateVendorSignature(req.params.id, signature)); 
 });
-app.get('/vendors/:id', (req, res) => {
-    res.json(app.locals.mkt.getVendor(req.params.id));
+app.get('/vendors/:id', async (req, res) => {
+    res.json(await app.locals.mkt.getVendor(req.params.id));
 });
 
 app.post('/vendors/:id/popr', async (req, res) => {
