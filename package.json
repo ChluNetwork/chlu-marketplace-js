@@ -24,6 +24,7 @@
     ]
   },
   "dependencies": {
+    "axios": "^0.18.0",
     "body-parser": "^1.18.2",
     "chlu-ipfs-support": "https://github.com/ChluNetwork/chlu-ipfs-support.git#fix-vendor",
     "express": "^4.16.2",

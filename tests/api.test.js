@@ -85,5 +85,5 @@ describe('HTTP API', () => {
                 amount: 521
             })
             .expect(200);
-    })
+    });
 });
