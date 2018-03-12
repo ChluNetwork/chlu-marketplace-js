@@ -44,7 +44,7 @@ const Marketplace = require('chlu-marketplace-js')
 
 // You can pass options to customize behavior but
 // it works with zero configuration
-cont mkt = new Marketplace({ ...options })
+const mkt = new Marketplace({ ...options })
 
 // This is not mandatory, the marketplace will be
 // started automatically when you use it if it has

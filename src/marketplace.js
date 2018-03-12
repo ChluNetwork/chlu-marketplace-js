@@ -102,10 +102,10 @@ class Marketplace {
      */
 
     /**
-     * Gets your keypair and related information. If the keypair
-     * was not already loaded, it is loaded from the file system.
-     * If this fails or is not available, then a new key pair is
-     * generated.
+     * Gets the marketplace's keypair and related information.
+     * If the keypair was not already loaded, it is loaded from
+     * the file system. If this fails or is not available, then
+     * a new key pair is generated.
      * 
      * @memberof Marketplace
      * @returns {Promise<KeyPair>}
