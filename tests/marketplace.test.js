@@ -14,6 +14,7 @@ describe('Marketplace (Unit)', () => {
         mkt = new Marketplace({
             rootKeyPairPath: keyFile,
             db: {
+                password: 'test',
                 storage: ':memory:'
             }
         });
@@ -49,7 +50,7 @@ describe('Marketplace (Unit)', () => {
                 done(err);
             }
         });
-        expect(mkt.start()).to.be.a('promise');
+        mkt.start().catch(done);
     });
 
     it('stops correctly', done => {
@@ -64,7 +65,7 @@ describe('Marketplace (Unit)', () => {
                 done(err);
             }
         });
-        expect(mkt.stop()).to.be.a('promise');
+        mkt.stop().catch(done);
     });
 
     it('can register a new vendor', async () => {

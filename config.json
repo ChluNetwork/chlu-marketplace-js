@@ -1,0 +1,6 @@
+{
+    "port": 4000,
+    "db": {
+        "password": "testpassword"
+    }
+}

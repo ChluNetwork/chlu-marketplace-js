@@ -12,13 +12,35 @@ You can use this library in three ways:
 
 __Note:__ the Chlu Marketplace will start and run a `js-ipfs` node when used
 
+### Documentation
+
+Here are some generated HTML docs for the library. [Documentation](http://ipfs.io/ipfs/QmW921ShobWwK6juAHeE54Sf5fjWrCpUqPJz9f5zDgdx3L/)
+
 ### Starting the HTTP Server
 
+#### Configuration file
+
+The HTTP server can be started with a configuration file
+in JSON, the content will be passed to the Marketplace constructor
+and the `port` option will be used for the HTTP server.
+
+The most basic configuration file is like this:
+
+```json
+{
+  "db": {
+    "password": "yourpassword"
+  }
+}
+```
+
+Check out the documentation above to see which other options you can pass.
+
 - clone this repository
-- `npm run start`
-- your Marketplace is now running on port 3000
-  - all data is saved in `~/.chlu`
-  - you can set the `PORT` environment variable to run it on any other port 
+- `yarn start -c path/to/your/config.json`
+- your Marketplace is now running
+  - all data is saved in `~/.chlu` by default
+  - also check out `yarn start --help` to see additional options
 
 ### Using the HTTP API in an Express app
 
@@ -35,6 +57,10 @@ app.use('/chlu', mktServer)
 app.listen(3000, () => {
     // Done! Your marketplace is mounted at /chlu
 })
+
+// The required submodules will be started when the first request
+// arrives. If you want to start them right away (recommended) run:
+app.locals.mkt.start() // returns a Promise, make sure to catch errors!
 ```
 
 ### Using the library directly
@@ -42,9 +68,15 @@ app.listen(3000, () => {
 ```javascript
 const Marketplace = require('chlu-marketplace-js')
 
-// You can pass options to customize behavior but
-// it works with zero configuration
-const mkt = new Marketplace({ ...options })
+const options = {
+  db: {
+    password: 'yourpassword'
+  }
+  // You can pass other options to customize behavior
+  // Check out the documentation above for more information
+}
+
+const mkt = new Marketplace(options)
 
 // This is not mandatory, the marketplace will be
 // started automatically when you use it if it has

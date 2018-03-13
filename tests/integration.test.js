@@ -25,7 +25,8 @@ describe('Marketplace (Integration)', () => {
         mkt = new Marketplace({
             rootKeyPairPath: keyFile,
             db: {
-                storage: dbFile
+                storage: dbFile,
+                password: 'test'
             },
             chluIpfs: {
                 logger: {

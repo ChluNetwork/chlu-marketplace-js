@@ -9,7 +9,7 @@ class DB {
         this.storage = options.storage || defaultDBPath;
         this.dialect = options.dialect || 'sqlite';
         this.username = options.username || 'username';
-        this.password = options.username || 'password';
+        this.password = options.password;
         this.host = options.host || 'localhost';
         this.port = options.port;
         this.dbName = options.dbName || 'chlu';
@@ -17,6 +17,9 @@ class DB {
     
     async start() {
         if(!this.db) {
+            if (!this.password) {
+                throw new Error('Password is required');
+            }
             if (!this.storage !== ':memory:') {
                 await ensureDir(path.dirname(this.storage));
             }

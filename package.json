@@ -9,10 +9,10 @@
   "repository": "https://github.com/ChluNetwork/chlu-marketplace-js.git",
   "license": "MIT",
   "bin": {
-    "chlu-marketplace": "src/bin.js"
+    "chlu-marketplace": "src/bin/index.js"
   },
   "scripts": {
-    "start": "node src/bin.js",
+    "start": "node src/bin/index.js serve",
     "test": "mocha --opts tests/mocha.opts",
     "test-watch": "mocha --opts tests/mocha.opts --watch",
     "test-coverage": "nyc mocha --opts tests/mocha.opts",
@@ -26,7 +26,8 @@
   "dependencies": {
     "axios": "^0.18.0",
     "body-parser": "^1.18.2",
-    "chlu-ipfs-support": "https://github.com/ChluNetwork/chlu-ipfs-support.git#fix-vendor",
+    "chlu-ipfs-support": "https://github.com/ChluNetwork/chlu-ipfs-support.git",
+    "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
     "mkdirp": "^0.5.1",
