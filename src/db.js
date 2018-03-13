@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 const path = require('path');
-const { ensureDir } = require('./utils');
+const { ensureDir } = require('./utils/fs');
 
 const defaultDBPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'db.sqlite');
 class DB {

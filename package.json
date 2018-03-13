@@ -31,6 +31,7 @@
     "cors": "^2.8.4",
     "express": "^4.16.2",
     "mkdirp": "^0.5.1",
+    "multihashes": "^0.4.13",
     "sequelize": "^4.35.1",
     "sqlite3": "^3.1.13"
   },
@@ -39,6 +40,7 @@
     "eslint": "^4.18.1",
     "libp2p-websocket-star-rendezvous": "^0.2.3",
     "mocha": "^5.0.1",
+    "multihashing-async": "^0.4.8",
     "nyc": "^11.4.1",
     "rimraf": "^2.6.2",
     "sinon": "^4.4.2",

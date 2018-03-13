@@ -42,7 +42,9 @@ async function respond(res, promise) {
         res.json(data);
         return data;
     } catch (err) {
-        res.status(500).send(err.message || err);
+        console.log('An error has been caught while responding to an HTTP request');
+        console.trace(err);
+        res.status(err.code || 500).send(err.message || err);
     }
 }
 

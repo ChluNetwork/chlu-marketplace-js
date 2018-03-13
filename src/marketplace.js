@@ -3,7 +3,9 @@ const ChluIPFS = require('chlu-ipfs-support');
 const DB = require('./db');
 const path = require('path');
 const { ECPair } = require('bitcoinjs-lib');
-const { readFile, saveFile } = require('./utils');
+const { readFile, saveFile } = require('./utils/fs');
+const HttpError = require('./utils/error');
+const multihashes = require('multihashes');
 
 const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'keypairwif.txt');
 
@@ -61,36 +63,44 @@ class Marketplace {
      * @returns {Promise}
      */
     async start() {
-        if (this.stopping) {
-            throw new Error('Cannot start Marketplace while it is stopping');
-        } else if (this.starting) {
-            await new Promise(resolve => {
-                this.events.once('started', resolve);
-            });
-        } else if (!this.started) {
-            this.stopped = false;
-            this.starting = true;
-            await Promise.all([this.db.start(), this.chluIpfs.start()]);
-            this.starting = false;
-            this.started = true;
-            this.events.emit('started');
+        try {
+            if (this.stopping) {
+                throw new Error('Cannot start Marketplace while it is stopping');
+            } else if (this.starting) {
+                await new Promise(resolve => {
+                    this.events.once('started', resolve);
+                });
+            } else if (!this.started) {
+                this.stopped = false;
+                this.starting = true;
+                await Promise.all([this.db.start(), this.chluIpfs.start()]);
+                this.starting = false;
+                this.started = true;
+                this.events.emit('started');
+            }
+        } catch (error) {
+            throw new HttpError(500, 'An error has occured while starting: ' + error.message);
         }
     }
 
     async stop() {
-        if (this.starting) {
-            throw new Error('Cannot stop Marketplace while it is starting');
-        } else if (this.stopping) {
-            await new Promise(resolve => {
-                this.events.once('stopped', resolve);
-            });
-        } else {
-            this.started = false;
-            this.stopping = true;
-            await Promise.all([this.db.stop(), this.chluIpfs.stop()]);
-            this.stopping = false;
-            this.stopped = true;
-            this.events.emit('stopped');
+        try {
+            if (this.starting) {
+                throw new Error('Cannot stop Marketplace while it is starting');
+            } else if (this.stopping) {
+                await new Promise(resolve => {
+                    this.events.once('stopped', resolve);
+                });
+            } else {
+                this.started = false;
+                this.stopping = true;
+                await Promise.all([this.db.stop(), this.chluIpfs.stop()]);
+                this.stopping = false;
+                this.stopped = true;
+                this.events.emit('stopped');
+            }
+        } catch (error) {
+            throw new HttpError(500, 'An error has occurred while shutting down: ' + error.message);
         }
     }
 
@@ -112,33 +122,37 @@ class Marketplace {
      */
     async getKeys() {
         await this.start();
-        let source = 'memory';
-        if (!this.rootKeyPair) {
-            let fileBuffer = null;
-            if (this.rootKeyPairPath !== false) {
-                fileBuffer = await readFile(this.rootKeyPairPath);
-            }
-            if (fileBuffer) {
-                const wif = fileBuffer.toString('utf-8');
-                this.rootKeyPair = ECPair.fromWIF(wif);
-                source = 'fs:' + this.rootKeyPairPath;
-            } else {
-                this.rootKeyPair = ECPair.makeRandom();
+        try {
+            let source = 'memory';
+            if (!this.rootKeyPair || !this.pubKeyMultihash) {
+                let fileBuffer = null;
                 if (this.rootKeyPairPath !== false) {
-                    await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+                    fileBuffer = await readFile(this.rootKeyPairPath);
                 }
-                source = 'random';
+                if (fileBuffer) {
+                    const wif = fileBuffer.toString('utf-8');
+                    this.rootKeyPair = ECPair.fromWIF(wif);
+                    source = 'fs:' + this.rootKeyPairPath;
+                } else {
+                    this.rootKeyPair = ECPair.makeRandom();
+                    if (this.rootKeyPairPath !== false) {
+                        await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
+                    }
+                    source = 'random';
+                }
+                const buffer = this.rootKeyPair.getPublicKeyBuffer();
+                this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
+                this.chluIpfs.pin(this.pubKeyMultihash);
+                // TODO: request pin?
             }
-            const buffer = this.rootKeyPair.getPublicKeyBuffer();
-            this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
-            this.chluIpfs.pin(this.pubKeyMultihash);
-            // TODO: request pin?
+            return {
+                keyPair: this.rootKeyPair,
+                pubKeyMultihash: this.pubKeyMultihash,
+                source
+            }; 
+        } catch (err) {
+            throw new HttpError(500, 'Could not fetch marketplace key pair: ' + err.message);
         }
-        return {
-            keyPair: this.rootKeyPair,
-            pubKeyMultihash: this.pubKeyMultihash,
-            source
-        }; 
     }
 
     /**
@@ -152,7 +166,11 @@ class Marketplace {
      */
     async getVendorIDs() {
         await this.start();
-        return await this.db.getVendorIDs();
+        try {
+            return await this.db.getVendorIDs();
+        } catch (err) {
+            throw new HttpError(500, 'Could not fetch vendors: ' + err.message);
+        }
     }
 
     /**
@@ -171,19 +189,25 @@ class Marketplace {
      * @memberof Marketplace
      */
     async getVendor(id) {
+        validateMultihash(id);
         await this.start();
-        const v = await this.db.getVendor(id);
-        if (v) {
-            // the full keypair is omitted intentionally
-            // so it does not get out by mistake
-            return {
-                mSignature: v.mSignature,
-                vPubKeyMultihash: v.vPubKeyMultihash,
-                vSignature: v.vSignature,
-                vmPubKeyMultihash: v.vmPubKeyMultihash
-            };
-        } else {
-            throw new Error('Vendor with key ' + id + ' is not registered');
+        try {
+            const v = await this.db.getVendor(id);
+            if (v) {
+                // the full keypair is omitted intentionally
+                // so it does not get out by mistake
+                return {
+                    mSignature: v.mSignature,
+                    vPubKeyMultihash: v.vPubKeyMultihash,
+                    vSignature: v.vSignature,
+                    vmPubKeyMultihash: v.vmPubKeyMultihash
+                };
+            } else {
+                throw new HttpError(404, 'Vendor not found');
+            }
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'Error while fetching Vendor: ' + error.message);
         }
     }
 
@@ -195,35 +219,44 @@ class Marketplace {
      * @memberof Marketplace
      */
     async getVMKeyPair(vendorId) {
+        validateMultihash(vendorId);
         await this.start();
         const wif = await this.db.getVMKeyPairWIF(vendorId);
+        if (wif === null) throw new Error('Key pair for vendor not found');
         return ECPair.fromWIF(wif);
     }
 
     async registerVendor(vendorPubKeyMultihash) {
         const id = vendorPubKeyMultihash;
+        validateMultihash(id);
         await this.start();
-        const vmKeyPair = ECPair.makeRandom();
-        const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
-        const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
-        this.chluIpfs.pin(vmPubKeyMultihash);
-        this.chluIpfs.pin(vendorPubKeyMultihash);
-        // TODO: request pin?
-        const keys = await this.getKeys();
-        const signature = await this.chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keys.keyPair);
-        const vendor = await this.db.createVendor(id, {
-            vmKeyPairWIF: vmKeyPair.toWIF(),
-            vmPubKeyMultihash,
-            mSignature: signature,
-            vSignature: null,
-            vPubKeyMultihash: id
-        });
-        const response = {
-            vPubKeyMultihash: vendor.vPubKeyMultihash,
-            vmPubKeyMultihash: vendor.vmPubKeyMultihash,
-            mSignature: vendor.mSignature 
-        };
-        return response;
+        try {
+            const vmKeyPair = ECPair.makeRandom();
+            const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
+            const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
+            // TODO: cleanup pins in case of error
+            this.chluIpfs.pin(vmPubKeyMultihash);
+            this.chluIpfs.pin(vendorPubKeyMultihash);
+            // TODO: request pin?
+            const keys = await this.getKeys();
+            const signature = await this.chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keys.keyPair);
+            const vendor = await this.db.createVendor(id, {
+                vmKeyPairWIF: vmKeyPair.toWIF(),
+                vmPubKeyMultihash,
+                mSignature: signature,
+                vSignature: null,
+                vPubKeyMultihash: id
+            });
+            const response = {
+                vPubKeyMultihash: vendor.vPubKeyMultihash,
+                vmPubKeyMultihash: vendor.vmPubKeyMultihash,
+                mSignature: vendor.mSignature 
+            };
+            return response;
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'An error has occurred: ' + error.message);
+        }
     }
 
     /**
@@ -252,9 +285,10 @@ class Marketplace {
      */
     async updateVendorSignature(vendorPubKeyMultihash, signature) {
         const id = vendorPubKeyMultihash;
+        validateMultihash(id);
         await this.start();
-        const vendor = await this.db.getVendor(id);
-        if (vendor) {
+        try {
+            const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
             const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
@@ -262,10 +296,11 @@ class Marketplace {
                 vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);
             } else {
-                throw new Error('Signature is not valid');
+                throw new HttpError(400, 'Signature is not valid');
             }
-        } else {
-            throw new Error('Vendor with key ' + id + ' is not registered');
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'An error has occurred: ' + error.message);
         }
     }
 
@@ -288,33 +323,41 @@ class Marketplace {
      * @memberof Marketplace
      */
     async createPoPR(vendorId, options = {}) {
-        /*
-        TODO:
-        - Use the vendor secret key that maps to the vendor specified in the request above
-        to sign the PoPR created above
-        - Set the PoPR in the form and that means the form is prefilled with the amount.
-        That means in the long run we get to the customer payment screen only from the checkout page
-        */
+        validateMultihash(vendorId);
         await this.start();
-        const vendor = await this.getVendor(vendorId);
-        const popr = {
-            item_id: options.item_id || 'N/A',
-            invoice_id: options.invoice_id || 'N/A',
-            customer_id: options.customer_id || 'N/A',
-            created_at: options.created_at || Date.now(),
-            expires_at: options.expires_at || 0,
-            currency_symbol: options.currency_symbol || 'N/A',
-            amount: options.amount || 0,
-            marketplace_url: '/.well-known',
-            marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
-            key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
-            chlu_version: 0,
-            attributes: [],
-            signature: ''
-        };
-        const keyPair = await this.getVMKeyPair(vendorId);
-        const signedPoPR = await this.chluIpfs.instance.vendor.signPoPR(popr, keyPair);
-        return signedPoPR;
+        try {
+            const vendor = await this.getVendor(vendorId);
+            const popr = {
+                item_id: options.item_id || 'N/A',
+                invoice_id: options.invoice_id || 'N/A',
+                customer_id: options.customer_id || 'N/A',
+                created_at: options.created_at || Date.now(),
+                expires_at: options.expires_at || 0,
+                currency_symbol: options.currency_symbol || 'N/A',
+                amount: options.amount || 0,
+                marketplace_url: '/.well-known',
+                marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
+                key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
+                chlu_version: 0,
+                attributes: [],
+                signature: ''
+            };
+            const keyPair = await this.getVMKeyPair(vendorId);
+            const signedPoPR = await this.chluIpfs.instance.vendor.signPoPR(popr, keyPair);
+            return signedPoPR;
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'An error has occurred: ' + error.message);
+        }
+    }
+}
+
+function validateMultihash(multihash) {
+    try {
+        multihashes.validate(multihashes.fromB58String(multihash));
+        return true;
+    } catch (err) {
+        throw new HttpError(400, 'Multihash is invalid: ' + multihash);
     }
 }
 
