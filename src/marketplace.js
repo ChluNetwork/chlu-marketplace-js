@@ -16,6 +16,7 @@ const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace
  * 
  * @param {Object} options optional configuration
  * @param {Object} options.chluIpfs extra options for the ChluIPFS node
+ * @param {string} options.marketplaceLocation URL for accessing this marketplace
  * @param {string} options.rootKeyPairPath path to the file which will store the key pair
  * for this marketplace. Make sure the file is adeguately protected. By default it will
  * be stored in `~/.chlu/marketplace/`. Pass `false` to disable persistence
@@ -52,6 +53,8 @@ class Marketplace {
         const opt = options.chluIpfs || {};
         this.chluIpfs = new ChluIPFS(Object.assign({}, opt, { type: ChluIPFS.types.marketplace }));
         this.db = new DB(options.db);
+        // TODO: docs for this option
+        this.marketplaceLocation = options.marketplaceLocation || 'http://localhost';
     }
 
     /**
@@ -104,6 +107,11 @@ class Marketplace {
         }
     }
 
+    async getIPFSID() {
+        await this.start();
+        return await this.chluIpfs.instance.ipfsUtils.id();
+    }
+
     /**
      * @typedef {Object} KeyPair
      * @property {ECPair} keyPair the actual key pair
@@ -142,7 +150,7 @@ class Marketplace {
                 }
                 const buffer = this.rootKeyPair.getPublicKeyBuffer();
                 this.pubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(buffer);
-                this.chluIpfs.pin(this.pubKeyMultihash);
+                await this.chluIpfs.pin(this.pubKeyMultihash);
                 // TODO: request pin?
             }
             return {
@@ -234,9 +242,10 @@ class Marketplace {
             const vmKeyPair = ECPair.makeRandom();
             const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
             const vmPubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(pubKeyBuffer);
-            // TODO: cleanup pins in case of error
-            this.chluIpfs.pin(vmPubKeyMultihash);
-            this.chluIpfs.pin(vendorPubKeyMultihash);
+            await Promise.all([
+                this.chluIpfs.pin(vmPubKeyMultihash),
+                this.chluIpfs.pin(vendorPubKeyMultihash)
+            ]);
             // TODO: request pin?
             const keys = await this.getKeys();
             const signature = await this.chluIpfs.instance.crypto.signMultihash(vmPubKeyMultihash, keys.keyPair);
@@ -335,7 +344,7 @@ class Marketplace {
                 expires_at: options.expires_at || 0,
                 currency_symbol: options.currency_symbol || 'N/A',
                 amount: options.amount || 0,
-                marketplace_url: 'localhost', // TODO: make this configurable
+                marketplace_url: this.marketplaceLocation.slice(0),
                 marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
                 vendor_key_location: '/ipfs/' + vendor.vPubKeyMultihash,

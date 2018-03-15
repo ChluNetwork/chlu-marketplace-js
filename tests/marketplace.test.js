@@ -31,6 +31,9 @@ describe('Marketplace (Unit)', () => {
             stop: sinon.stub().resolves(),
             pin: sinon.stub().resolves(),
             instance: {
+                ipfsUtils: {
+                    id: sinon.stub().resolves('fakeIPFSid')
+                },
                 crypto: {
                     storePublicKey: sinon.stub().resolves(fakemultihash),
                     signMultihash: sinon.stub().resolves(fakesignature),

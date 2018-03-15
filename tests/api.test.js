@@ -28,7 +28,8 @@ describe('HTTP API', () => {
             }),
             createPoPR: sinon.stub().resolves({
                 signature: 'fakesignature'
-            })
+            }),
+            getIPFSID: sinon.stub.resolves('fakeIPFSid')
         };
         api = request(server);
     });

@@ -1,17 +1,23 @@
 const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
 
-const app = require('../server');
+const mktApp = require('../server');
 const Marketplace = require('../');
 
 async function serve(port = 3000, configurationFile = null) {
     let p = port;
+    const app = express();
+    app.use(morgan('combined'));
+    app.use(cors());
     if (configurationFile) {
         const data = await readFile(configurationFile);
         const conf = JSON.parse(data.toString('utf-8'));
-        app.locals.mkt = new Marketplace(conf);
+        mktApp.locals.mkt = new Marketplace(conf);
         if (conf.port) p = conf.port;
     }
-    await app.locals.mkt.start();
+    await mktApp.locals.mkt.start();
     return new Promise(resolve => {
         app.listen(p, () => {
             console.log('Chlu Marketplace listening on port', p);

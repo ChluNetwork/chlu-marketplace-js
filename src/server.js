@@ -1,12 +1,9 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
 const Marketplace = require('./marketplace');
 
 const app = express();
 app.locals.mkt = new Marketplace();
-app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.get('/', (req, res) => res.send('Chlu Marketplace'));
 
@@ -31,8 +28,10 @@ app.post('/vendors/:id/popr', async (req, res) => {
 
 app.get('/.well-known', async (req, res) => {
     const keys = await app.locals.mkt.getKeys();
+    const id = await app.locals.mkt.getIPFSID();
     await respond(res, {
-        multihash: keys.pubKeyMultihash
+        multihash: keys.pubKeyMultihash,
+        ipfsId: id
     });
 });
 

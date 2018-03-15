@@ -28,9 +28,11 @@ The most basic configuration file is like this:
 
 ```json
 {
+  "port": 3000,
   "db": {
     "password": "yourpassword"
-  }
+  },
+  "marketplaceLocation": "http://localhost:3000"
 }
 ```
 
