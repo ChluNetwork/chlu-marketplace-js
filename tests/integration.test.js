@@ -14,7 +14,7 @@ describe('Marketplace (Integration)', () => {
 
     async function getRandomVendor() {
         const keyPair = ECPair.makeRandom();
-        const multihash = await mkt.chluIpfs.instance.vendor.storePublicKey(keyPair.getPublicKeyBuffer());
+        const multihash = await mkt.chluIpfs.instance.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
         return {
             keyPair,
             multihash
@@ -48,12 +48,11 @@ describe('Marketplace (Integration)', () => {
         });
         // Start manually since we call it from outside during the tests
         await mkt.chluIpfs.start();
-        const v = mkt.chluIpfs.instance.vendor;
-        sinon.spy(v, 'storePublicKey');
-        sinon.spy(v, 'signMultihash');
-        sinon.spy(v, 'verifyMultihash');
-        sinon.spy(v, 'signPoPR');
-        sinon.spy(v, 'verifyPoPR');
+        const c = mkt.chluIpfs.instance.crypto;
+        sinon.spy(c, 'storePublicKey');
+        sinon.spy(c, 'signMultihash');
+        sinon.spy(c, 'verifyMultihash');
+        sinon.spy(c, 'signPoPR');
     });
 
     after(async () => {
@@ -62,12 +61,11 @@ describe('Marketplace (Integration)', () => {
     });
 
     afterEach(() => {
-        const v = mkt.chluIpfs.instance.vendor;
-        v.storePublicKey.resetHistory();
-        v.signMultihash.resetHistory();
-        v.verifyMultihash.resetHistory();
-        v.signPoPR.resetHistory();
-        v.verifyPoPR.resetHistory();
+        const c = mkt.chluIpfs.instance.crypto;
+        c.storePublicKey.resetHistory();
+        c.signMultihash.resetHistory();
+        c.verifyMultihash.resetHistory();
+        c.signPoPR.resetHistory();
     });
 
     it('can register a new vendor', async () => {
@@ -75,8 +73,8 @@ describe('Marketplace (Integration)', () => {
         const response = await mkt.registerVendor(v.multihash);
         expect(response.vPubKeyMultihash).to.equal(v.multihash);
         // Calls
-        expect(mkt.chluIpfs.instance.vendor.storePublicKey.called).to.be.true;
-        expect(mkt.chluIpfs.instance.vendor.signMultihash.called).to.be.true;
+        expect(mkt.chluIpfs.instance.crypto.storePublicKey.called).to.be.true;
+        expect(mkt.chluIpfs.instance.crypto.signMultihash.called).to.be.true;
         // State
         const vendor = await mkt.db.getVendor(response.vPubKeyMultihash);
         expect(vendor).to.be.an('object');
@@ -97,20 +95,20 @@ describe('Marketplace (Integration)', () => {
         expect(response).to.be.an('object');
         // Verify signatures
         const mMultihash = (await mkt.getKeys()).pubKeyMultihash;
-        const valid = await mkt.chluIpfs.instance.vendor.verifyMultihash(mMultihash, response.vmPubKeyMultihash, vendor.mSignature);
+        const valid = await mkt.chluIpfs.instance.crypto.verifyMultihash(mMultihash, response.vmPubKeyMultihash, vendor.mSignature);
         expect(valid).to.be.true;
     });
 
     it('can submit a vendor signature', async () => {
         const v = await getRandomVendor();
         const vendorData = await mkt.registerVendor(v.multihash);
-        const signature = await mkt.chluIpfs.instance.vendor.signMultihash(vendorData.vmPubKeyMultihash, v.keyPair);
+        const signature = await mkt.chluIpfs.instance.crypto.signMultihash(vendorData.vmPubKeyMultihash, v.keyPair);
         await mkt.updateVendorSignature(
             vendorData.vPubKeyMultihash,
             signature,
             v.multihash
         );
-        expect(mkt.chluIpfs.instance.vendor.verifyMultihash.calledWith(
+        expect(mkt.chluIpfs.instance.crypto.verifyMultihash.calledWith(
             v.multihash,
             vendorData.vmPubKeyMultihash,
             signature
@@ -139,13 +137,22 @@ describe('Marketplace (Integration)', () => {
         expect(vendor.mSignature).to.be.a('string');
     });
 
-    it('can create PoPRs', async () => {
+    it('can create valid PoPRs', async () => {
+        // Vendor full setup
         const v = await getRandomVendor();
-        const vendor = await mkt.registerVendor(v.multihash);
+        const vendorData = await mkt.registerVendor(v.multihash);
+        const signature = await mkt.chluIpfs.instance.crypto.signMultihash(vendorData.vmPubKeyMultihash, v.keyPair);
+        await mkt.updateVendorSignature(
+            vendorData.vPubKeyMultihash,
+            signature,
+            v.multihash
+        );
+        const vendor = await mkt.db.getVendor(vendorData.vPubKeyMultihash);
+        // Create PoPR
         const popr = await mkt.createPoPR(v.multihash);
-        // Calls
-        expect(mkt.chluIpfs.instance.vendor.signPoPR.called).to.be.true;
-        // Schema
+        // Check that the right calls were made
+        expect(mkt.chluIpfs.instance.crypto.signPoPR.called).to.be.true;
+        // Check the popr content
         expect(popr.item_id).to.be.a('string');
         expect(popr.invoice_id).to.be.a('string');
         expect(popr.customer_id).to.be.a('string');
@@ -159,8 +166,13 @@ describe('Marketplace (Integration)', () => {
         expect(popr.chlu_version).to.equal(0);
         expect(Array.isArray(popr.attributes)).to.be.true;
         expect(popr.signature).to.be.a('string');
-        // Check signature
-        const valid = await mkt.chluIpfs.instance.vendor.verifyPoPR(popr, vendor.vmPubKeyMultihash);
+        // Check popr validity
+        mkt.chluIpfs.instance.validator.fetchMarketplaceKey = sinon.stub().callsFake(async url => {
+            // Stub key retrieval from marketplace
+            expect(url).to.equal(popr.marketplace_url);
+            return mkt.pubKeyMultihash;
+        });
+        const valid = await mkt.chluIpfs.instance.validator.validatePoPRSignaturesAndKeys(popr);
         expect(valid).to.be.true;
     });
 });

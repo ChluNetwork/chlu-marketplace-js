@@ -53,7 +53,7 @@ function loadKeys(wif) {
 }
 
 async function storePublicKey(chluIpfs, keyPair) {
-    return await chluIpfs.instance.vendor.storePublicKey(keyPair.getPublicKeyBuffer());
+    return await chluIpfs.instance.crypto.storePublicKey(keyPair.getPublicKeyBuffer());
 }
 
 async function register(url, pubKeyMultihash) {
@@ -65,7 +65,7 @@ async function register(url, pubKeyMultihash) {
 }
 
 async function submitSignature(url, chluIpfs, vmPubKeyMultihash, pubKeyMultihash, keyPair) {
-    const signature = await chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keyPair);
+    const signature = await chluIpfs.instance.crypto.signMultihash(vmPubKeyMultihash, keyPair);
     const response = await axios.post(url + '/vendors/' + pubKeyMultihash + '/signature', { signature });
     if (response.status !== 200) {
         throw new Error('Submitting signature failed: server returned ' + response.status);

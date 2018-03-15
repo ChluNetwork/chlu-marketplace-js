@@ -141,7 +141,7 @@ class Marketplace {
                     source = 'random';
                 }
                 const buffer = this.rootKeyPair.getPublicKeyBuffer();
-                this.pubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(buffer);
+                this.pubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(buffer);
                 this.chluIpfs.pin(this.pubKeyMultihash);
                 // TODO: request pin?
             }
@@ -233,13 +233,13 @@ class Marketplace {
         try {
             const vmKeyPair = ECPair.makeRandom();
             const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
-            const vmPubKeyMultihash = await this.chluIpfs.instance.vendor.storePublicKey(pubKeyBuffer);
+            const vmPubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(pubKeyBuffer);
             // TODO: cleanup pins in case of error
             this.chluIpfs.pin(vmPubKeyMultihash);
             this.chluIpfs.pin(vendorPubKeyMultihash);
             // TODO: request pin?
             const keys = await this.getKeys();
-            const signature = await this.chluIpfs.instance.vendor.signMultihash(vmPubKeyMultihash, keys.keyPair);
+            const signature = await this.chluIpfs.instance.crypto.signMultihash(vmPubKeyMultihash, keys.keyPair);
             const vendor = await this.db.createVendor(id, {
                 vmKeyPairWIF: vmKeyPair.toWIF(),
                 vmPubKeyMultihash,
@@ -291,7 +291,7 @@ class Marketplace {
             const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
-            const valid = this.chluIpfs.instance.vendor.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
+            const valid = this.chluIpfs.instance.crypto.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
             if (valid) {
                 vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);
@@ -335,15 +335,19 @@ class Marketplace {
                 expires_at: options.expires_at || 0,
                 currency_symbol: options.currency_symbol || 'N/A',
                 amount: options.amount || 0,
-                marketplace_url: '/.well-known',
+                marketplace_url: 'localhost', // TODO: make this configurable
                 marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
+                vendor_key_location: '/ipfs/' + vendor.vPubKeyMultihash,
+                vendor_signature: vendor.vSignature,
+                marketplace_signature: vendor.mSignature,
+                vendor_encryption_key_location: '', // TODO: support this
                 chlu_version: 0,
                 attributes: [],
                 signature: ''
             };
             const keyPair = await this.getVMKeyPair(vendorId);
-            const signedPoPR = await this.chluIpfs.instance.vendor.signPoPR(popr, keyPair);
+            const signedPoPR = await this.chluIpfs.instance.crypto.signPoPR(popr, keyPair);
             return signedPoPR;
         } catch (error) {
             if (error instanceof HttpError) throw error;

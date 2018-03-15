@@ -31,7 +31,7 @@ describe('Marketplace (Unit)', () => {
             stop: sinon.stub().resolves(),
             pin: sinon.stub().resolves(),
             instance: {
-                vendor: {
+                crypto: {
                     storePublicKey: sinon.stub().resolves(fakemultihash),
                     signMultihash: sinon.stub().resolves(fakesignature),
                     verifyMultihash: sinon.stub().resolves(true),
@@ -39,8 +39,7 @@ describe('Marketplace (Unit)', () => {
                         return Object.assign(popr, {
                             signature: fakesignature
                         });
-                    }),
-                    verifyPoPR: sinon.stub().resolves(true)
+                    })
                 }
             }
         };
@@ -78,8 +77,8 @@ describe('Marketplace (Unit)', () => {
         const response = await mkt.registerVendor(fakepvmultihash);
         expect(response.vPubKeyMultihash).to.equal(fakepvmultihash);
         // Calls
-        expect(mkt.chluIpfs.instance.vendor.storePublicKey.called).to.be.true;
-        expect(mkt.chluIpfs.instance.vendor.signMultihash.called).to.be.true;
+        expect(mkt.chluIpfs.instance.crypto.storePublicKey.called).to.be.true;
+        expect(mkt.chluIpfs.instance.crypto.signMultihash.called).to.be.true;
         expect(mkt.chluIpfs.pin.calledWith(fakepvmultihash)).to.be.true;
         expect(mkt.chluIpfs.pin.calledWith(fakemultihash)).to.be.true;
         // State
@@ -109,7 +108,7 @@ describe('Marketplace (Unit)', () => {
             fakesignature,
             fakepvmultihash
         );
-        expect(mkt.chluIpfs.instance.vendor.verifyMultihash.calledWith(
+        expect(mkt.chluIpfs.instance.crypto.verifyMultihash.calledWith(
             fakepvmultihash,
             vendorData.vmPubKeyMultihash,
             fakesignature
@@ -172,7 +171,7 @@ describe('Marketplace (Unit)', () => {
         const v = await mkt.registerVendor(fakepvmultihash);
         const popr = await mkt.createPoPR(fakepvmultihash);
         // Calls
-        expect(mkt.chluIpfs.instance.vendor.signPoPR.called).to.be.true;
+        expect(mkt.chluIpfs.instance.crypto.signPoPR.called).to.be.true;
         // Schema
         expect(popr.item_id).to.be.a('string');
         expect(popr.invoice_id).to.be.a('string');
