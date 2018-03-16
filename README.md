@@ -14,7 +14,7 @@ __Note:__ the Chlu Marketplace will start and run a `js-ipfs` node when used
 
 ### Documentation
 
-Here are some generated HTML docs for the library. [Documentation](http://ipfs.io/ipfs/QmW921ShobWwK6juAHeE54Sf5fjWrCpUqPJz9f5zDgdx3L/)
+Here are some generated HTML docs for the library. [Documentation](http://ipfs.io/ipfs/QmRczgn5ZEF7pLBLp4zL339p836qCAd9YLeDD1mRN2nGuz/)
 
 ### Starting the HTTP Server
 

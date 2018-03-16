@@ -16,7 +16,8 @@
     "test": "mocha --opts tests/mocha.opts",
     "test-watch": "mocha --opts tests/mocha.opts --watch",
     "test-coverage": "nyc mocha --opts tests/mocha.opts",
-    "lint": "eslint src tests"
+    "lint": "eslint src tests",
+    "docs": "documentation build src/marketplace.js -f html -o docs"
   },
   "nyc": {
     "exclude": [
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "chai": "^4.1.2",
+    "documentation": "^6.1.0",
     "eslint": "^4.18.1",
     "libp2p-websocket-star-rendezvous": "^0.2.3",
     "mocha": "^5.0.1",
