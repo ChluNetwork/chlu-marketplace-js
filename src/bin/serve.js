@@ -11,6 +11,7 @@ async function serve(port = 3000, configurationFile = null) {
     const app = express();
     app.use(morgan('combined'));
     app.use(cors());
+    app.use(mktApp);
     if (configurationFile) {
         const data = await readFile(configurationFile);
         const conf = JSON.parse(data.toString('utf-8'));
