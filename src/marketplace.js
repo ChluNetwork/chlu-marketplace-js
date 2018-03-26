@@ -234,6 +234,15 @@ class Marketplace {
         return ECPair.fromWIF(wif);
     }
 
+    /**
+     * Register a new vendor with the Marketplace
+     * 
+     * @param {string} vendorPubKeyMultihash the vendor's public key multihash, which will act as ID
+     * @returns {Promise<Vendor>} return a vendor, but without the vendor signature. It will need to be
+     * submitted using the updateVendorSignature function
+     * @throws {Error} if something goes wrong
+     * @memberof Marketplace
+     */
     async registerVendor(vendorPubKeyMultihash) {
         const id = vendorPubKeyMultihash;
         validateMultihash(id);
@@ -345,7 +354,7 @@ class Marketplace {
                 currency_symbol: options.currency_symbol || 'N/A',
                 amount: options.amount || 0,
                 marketplace_url: this.marketplaceLocation.slice(0),
-                marketplace_vendor_url: '/ipfs/' + vendor.vPubKeyMultihash,
+                marketplace_vendor_url: options.marketplace_vendor_url || (this.marketplaceLocation.slice(0) + '/vendors/' + vendor.vPubKeyMultihash),
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
                 vendor_key_location: '/ipfs/' + vendor.vPubKeyMultihash,
                 vendor_signature: vendor.vSignature,
