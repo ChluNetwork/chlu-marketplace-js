@@ -1,0 +1,7 @@
+{
+    "port": 4000,
+    "marketplaceLocation": "http://localhost:4000",
+    "db": {
+        "password": "testpassword"
+    }
+}
