@@ -38,6 +38,8 @@ The most basic configuration file is like this:
 
 Check out the documentation above to see which other options you can pass.
 
+You can also pass `chlu-ipfs` specific options in the `chluIpfs` object.
+
 - clone this repository
 - `yarn start -c path/to/your/config.json`
 - your Marketplace is now running
