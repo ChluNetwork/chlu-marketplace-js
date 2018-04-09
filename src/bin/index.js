@@ -12,7 +12,7 @@ function handleErrors(fn) {
             console.trace(err);
             process.exit(1);
         });
-    }
+    };
 }
 
 cli
