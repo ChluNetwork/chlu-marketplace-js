@@ -53,7 +53,7 @@ class Marketplace {
         const opt = options.chluIpfs || {};
         this.chluIpfs = new ChluIPFS(Object.assign({
             // Don't use ~/.chlu to not conflict with the service node
-            directory: '~/.chlu/marketplace'
+            directory: path.join(process.env.HOME, '.chlu/marketplace')
         }, opt, { type: ChluIPFS.types.marketplace }));
         this.db = new DB(options.db);
         // TODO: docs for this option
