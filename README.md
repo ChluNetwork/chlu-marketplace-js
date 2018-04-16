@@ -40,6 +40,8 @@ Check out the documentation above to see which other options you can pass.
 
 You can also pass `chlu-ipfs` specific options in the `chluIpfs` object.
 
+__Note:__ if you are running other Chlu apps, make sure they are set to the same network.
+
 - clone this repository
 - `yarn start -c path/to/your/config.json`
 - your Marketplace is now running
