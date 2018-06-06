@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "chlu-ipfs-support": "https://github.com/ChluNetwork/chlu-ipfs-support.git",
+    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support",
     "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
@@ -41,6 +41,7 @@
     "documentation": "^6.1.0",
     "eslint": "^4.18.1",
     "libp2p-websocket-star-rendezvous": "^0.2.3",
+    "lodash": "^4.17.10",
     "mocha": "^5.0.1",
     "multihashing-async": "^0.4.8",
     "nyc": "^11.4.1",

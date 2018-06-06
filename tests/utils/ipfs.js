@@ -1,5 +1,5 @@
 const rendezvous = require('libp2p-websocket-star-rendezvous');
-const cloneDeep = require('lodash.clonedeep');
+const { cloneDeep } = require('lodash');
 const constants = require('chlu-ipfs-support/src/constants');
 const multihashing = require('multihashing-async');
 const multihashes = require('multihashes');
