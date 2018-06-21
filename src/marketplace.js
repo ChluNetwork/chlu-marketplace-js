@@ -2,12 +2,7 @@ const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
 const DB = require('./db');
 const path = require('path');
-const { ECPair } = require('bitcoinjs-lib');
-const { readFile, saveFile } = require('./utils/fs');
 const HttpError = require('./utils/error');
-const multihashes = require('multihashes');
-
-const defaultRootKeyPairPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'keypairwif.txt');
 
 /**
  * Chlu Marketplace provides the required methods for
@@ -43,13 +38,6 @@ class Marketplace {
         this.starting = false;
         this.stopping = false;
         this.stopped = true;
-        if (options.rootKeyPairPath === false) {
-            this.rootKeyPairPath = false;
-        } else {
-            this.rootKeyPairPath = options.rootKeyPairPath || defaultRootKeyPairPath;
-        }
-        this.rootKeyPair = null;
-        this.pubKeyMultihash = null;
         const opt = options.chluIpfs || {};
         this.chluIpfs = new ChluIPFS(Object.assign({
             // Don't use ~/.chlu to not conflict with the service node
@@ -123,47 +111,17 @@ class Marketplace {
      */
 
     /**
-     * Gets the marketplace's keypair and related information.
-     * If the keypair was not already loaded, it is loaded from
+     * Gets the marketplace's DID and related information.
+     * If the DID was not already loaded, it is loaded from
      * the file system. If this fails or is not available, then
-     * a new key pair is generated.
+     * a new DID is generated.
      * 
      * @memberof Marketplace
-     * @returns {Promise<KeyPair>}
+     * @returns {Promise<string>}
      */
-    async getKeys() {
+    async getDIDID() {
         await this.start();
-        try {
-            let source = 'memory';
-            if (!this.rootKeyPair || !this.pubKeyMultihash) {
-                let fileBuffer = null;
-                if (this.rootKeyPairPath !== false) {
-                    fileBuffer = await readFile(this.rootKeyPairPath);
-                }
-                if (fileBuffer) {
-                    const wif = fileBuffer.toString('utf-8');
-                    this.rootKeyPair = ECPair.fromWIF(wif);
-                    source = 'fs:' + this.rootKeyPairPath;
-                } else {
-                    this.rootKeyPair = ECPair.makeRandom();
-                    if (this.rootKeyPairPath !== false) {
-                        await saveFile(this.rootKeyPairPath, this.rootKeyPair.toWIF());
-                    }
-                    source = 'random';
-                }
-                const buffer = this.rootKeyPair.getPublicKeyBuffer();
-                this.pubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(buffer);
-                await this.chluIpfs.pin(this.pubKeyMultihash);
-                // TODO: request pin?
-            }
-            return {
-                keyPair: this.rootKeyPair,
-                pubKeyMultihash: this.pubKeyMultihash,
-                source
-            }; 
-        } catch (err) {
-            throw new HttpError(500, 'Could not fetch marketplace key pair: ' + err.message);
-        }
+        return this.chluIpfs.instance.did.didId
     }
 
     /**
@@ -186,7 +144,7 @@ class Marketplace {
 
     /**
      * @typedef {Object} Vendor
-     * @property {string} vPubKeyMultihash the multihash of the vendor key (aka Vendor ID)
+     * @property {string} vDidId the ID of the vendor DID (aka Vendor ID)
      * @property {string} vmPubKeyMultihash the multihash of the vendor-marketplace key
      * @property {string} mSignature hex encoded signature of the marketplace for the vendor-marketplace key
      * @property {string} vSignature hex encoded signature of the vendor for the vendor-marketplace key
@@ -200,7 +158,7 @@ class Marketplace {
      * @memberof Marketplace
      */
     async getVendor(id) {
-        validateMultihash(id);
+        validateDidId(id);
         await this.start();
         try {
             const v = await this.db.getVendor(id);
@@ -209,7 +167,7 @@ class Marketplace {
                 // so it does not get out by mistake
                 return {
                     mSignature: v.mSignature,
-                    vPubKeyMultihash: v.vPubKeyMultihash,
+                    vDidId: v.vDidId,
                     vSignature: v.vSignature,
                     vmPubKeyMultihash: v.vmPubKeyMultihash
                 };
@@ -225,51 +183,50 @@ class Marketplace {
     /**
      * Get the vendor-marketplace key pair for a vendor
      * 
-     * @param {string} vendorId the vendor's public key multihash
-     * @returns {Promise<ECPair>}
+     * @param {string} vendorId the vendor's DID ID
+     * @returns {Promise<KeyPair>}
      * @memberof Marketplace
      */
     async getVMKeyPair(vendorId) {
-        validateMultihash(vendorId);
+        validateDidId(vendorId);
         await this.start();
-        const wif = await this.db.getVMKeyPairWIF(vendorId);
-        if (wif === null) throw new Error('Key pair for vendor not found');
-        return ECPair.fromWIF(wif);
+        const privKey = await this.db.getVMPrivateKey(vendorId);
+        if (privKey === null) throw new Error('Private key for vendor not found');
+        const imported = await this.chluIpfs.instance.crypto.importKeyPair(privKey)
+        return imported.keyPair
     }
 
     /**
      * Register a new vendor with the Marketplace
      * 
-     * @param {string} vendorPubKeyMultihash the vendor's public key multihash, which will act as ID
+     * @param {string} vDidId the vendor's DID ID, which will act as ID
      * @returns {Promise<Vendor>} return a vendor, but without the vendor signature. It will need to be
      * submitted using the updateVendorSignature function
      * @throws {Error} if something goes wrong
      * @memberof Marketplace
      */
-    async registerVendor(vendorPubKeyMultihash) {
-        const id = vendorPubKeyMultihash;
-        validateMultihash(id);
+    async registerVendor(vDidId) {
+        const id = vDidId
+        validateDidId(id);
         await this.start();
         try {
-            const vmKeyPair = ECPair.makeRandom();
-            const pubKeyBuffer = vmKeyPair.getPublicKeyBuffer();
-            const vmPubKeyMultihash = await this.chluIpfs.instance.crypto.storePublicKey(pubKeyBuffer);
-            await Promise.all([
-                this.chluIpfs.pin(vmPubKeyMultihash),
-                this.chluIpfs.pin(vendorPubKeyMultihash)
-            ]);
+            const {
+                keyPair: vmKeyPair,
+                pubKeyMultihash: vmPubKeyMultihash
+            } = await this.chluIpfs.instance.crypto.generateKeyPair()
+            await this.chluIpfs.pin(vmPubKeyMultihash)
             // TODO: request pin?
-            const keys = await this.getKeys();
-            const signature = await this.chluIpfs.instance.crypto.signMultihash(vmPubKeyMultihash, keys.keyPair);
+            const signature = await this.chluIpfs.instance.did.signMultihash(vmPubKeyMultihash);
+            const exported = await this.chluIpfs.instance.crypto.exportKeyPair(vmKeyPair)
             const vendor = await this.db.createVendor(id, {
-                vmKeyPairWIF: vmKeyPair.toWIF(),
+                vmPrivateKey: exported,
                 vmPubKeyMultihash,
                 mSignature: signature,
                 vSignature: null,
-                vPubKeyMultihash: id
+                vDidId: id
             });
             const response = {
-                vPubKeyMultihash: vendor.vPubKeyMultihash,
+                vDidId: vendor.vDidId,
                 vmPubKeyMultihash: vendor.vmPubKeyMultihash,
                 mSignature: vendor.mSignature 
             };
@@ -299,20 +256,20 @@ class Marketplace {
     /**
      * Create/Update the vendor signature for a vendor-marketplace key
      * 
-     * @param {string} vendorId the vendor's public key multihash
+     * @param {string} vDidId the vendor's DID ID
      * @returns {Promise}
      * @throws {Error} if the signature is not valid or the vendor does not exist
      * @memberof Marketplace
      */
-    async updateVendorSignature(vendorPubKeyMultihash, signature) {
-        const id = vendorPubKeyMultihash;
-        validateMultihash(id);
+    async updateVendorSignature(vDidId, signature) {
+        const id = vDidId;
+        validateDidId(id);
         await this.start();
         try {
             const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
-            const valid = this.chluIpfs.instance.crypto.verifyMultihash(vendorPubKeyMultihash, PvmMultihash, signature);
+            const valid = this.chluIpfs.instance.did.verifyMultihash(vDidId, PvmMultihash, signature);
             if (valid) {
                 vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);
@@ -344,7 +301,7 @@ class Marketplace {
      * @memberof Marketplace
      */
     async createPoPR(vendorId, options = {}) {
-        validateMultihash(vendorId);
+        validateDidId(vendorId);
         await this.start();
         try {
             const vendor = await this.getVendor(vendorId);
@@ -357,9 +314,9 @@ class Marketplace {
                 currency_symbol: options.currency_symbol || 'N/A',
                 amount: options.amount || 0,
                 marketplace_url: this.marketplaceLocation.slice(0),
-                marketplace_vendor_url: options.marketplace_vendor_url || (this.marketplaceLocation.slice(0) + '/vendors/' + vendor.vPubKeyMultihash),
+                marketplace_vendor_url: options.marketplace_vendor_url || (this.marketplaceLocation.slice(0) + '/vendors/' + vendor.vDidId),
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
-                vendor_key_location: '/ipfs/' + vendor.vPubKeyMultihash,
+                vendor_did_id: vendor.vDidId,
                 vendor_signature: vendor.vSignature,
                 marketplace_signature: vendor.mSignature,
                 vendor_encryption_key_location: '', // TODO: support this
@@ -372,18 +329,20 @@ class Marketplace {
             return signedPoPR;
         } catch (error) {
             if (error instanceof HttpError) throw error;
-            throw new HttpError(500, 'An error has occurred: ' + error.message);
+            throw new HttpError(500, 'An error has occurred: ' + error ? error.message : 'Unknown error');
         }
     }
 }
 
-function validateMultihash(multihash) {
+function validateDidId(didId) {
     try {
-        multihashes.validate(multihashes.fromB58String(multihash));
-        return true;
-    } catch (err) {
-        throw new HttpError(400, 'Multihash is invalid: ' + multihash);
+        const valid = typeof didId === 'string' && didId.indexOf('did:') === 0
+        if (!valid) throw Error()
+    } catch (error) {
+        console.log('invalid', didId)
+        throw HttpError(400, 'DID ID is invalid: ' + didId);
     }
+    return true
 }
 
 module.exports = Marketplace;

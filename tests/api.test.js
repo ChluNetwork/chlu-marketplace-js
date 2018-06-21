@@ -10,7 +10,7 @@ describe('HTTP API', () => {
         mkt = server.locals.mkt = {
             registerVendor: sinon.stub().resolves({
                 id: 'pvmultihash',
-                multihash: 'fakemultihash',
+                vDidId: 'fakevendordidid',
                 marketplaceSignature: 'fakesignature'
             }),
             updateVendorSignature: sinon.stub().resolves(),
@@ -19,13 +19,11 @@ describe('HTTP API', () => {
                 'ven1', 'ven2'
             ]),
             getVendor: sinon.stub().resolves({
-                multihash: 'fakemultihash',
+                vDidId: 'fakevendordidid',
                 marketplaceSignature: 'fakesignature',
                 vendorSignature: null
             }),
-            getKeys: sinon.stub().resolves({
-                pubKeyMultihash: 'fakemultihash'
-            }),
+            getDIDID: sinon.stub().resolves('fakemarketplacedid'),
             createPoPR: sinon.stub().resolves({
                 signature: 'fakesignature'
             }),
@@ -44,7 +42,7 @@ describe('HTTP API', () => {
 
     it('GET /vendors/ven1', async () => {
         await api.get('/vendors/ven1').expect({
-            multihash: 'fakemultihash',
+            vDidId: 'fakevendordidid',
             marketplaceSignature: 'fakesignature',
             vendorSignature: null
         });
@@ -53,7 +51,7 @@ describe('HTTP API', () => {
 
     it('GET /.well-known', async () => {
         await api.get('/.well-known').expect({
-            multihash: 'fakemultihash'
+            didId: 'fakemarketplacedid'
         });
     });
 
@@ -64,7 +62,7 @@ describe('HTTP API', () => {
             })
             .expect({
                 id: 'pvmultihash',
-                multihash: 'fakemultihash',
+                vDidId: 'fakevendordidid',
                 marketplaceSignature: 'fakesignature'
             });
         expect(mkt.registerVendor.calledWith('pvmultihash')).to.be.true;

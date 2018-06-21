@@ -8,11 +8,11 @@ const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 const { toMultihash } = require('./utils/ipfs');
 
 describe('Marketplace (Unit)', () => {
-    let mkt, fakemultihash, fakepvmultihash, fakesignature = 'fakesignature';
+    let mkt, fakemultihash, fakevendordidid, fakesignature = 'fakesignature';
 
     before(async () => {
         fakemultihash = await toMultihash('fakemultihash');
-        fakepvmultihash = await toMultihash('fakepvmultihash');
+        fakevendordidid = await 'did:vendor';
     });
 
     beforeEach(() => {
@@ -34,7 +34,14 @@ describe('Marketplace (Unit)', () => {
                 ipfsUtils: {
                     id: sinon.stub().resolves('fakeIPFSid')
                 },
+                did: {
+                    signMultihash: sinon.stub().resolves(fakesignature),
+                    verifyMultihash: sinon.stub().resolves(true),
+                },
                 crypto: {
+                    generateKeyPair: sinon.stub().resolves({ keyPair: 'keyPair', pubKeyMultihash: fakemultihash}),
+                    exportKeyPair: sinon.stub().callsFake(async k => 'exported' + k),
+                    importKeyPair: sinon.stub().callsFake(async k => k.slice('exported'.length)),
                     storePublicKey: sinon.stub().resolves(fakemultihash),
                     signMultihash: sinon.stub().resolves(fakesignature),
                     verifyMultihash: sinon.stub().resolves(true),
@@ -77,18 +84,16 @@ describe('Marketplace (Unit)', () => {
     });
 
     it('can register a new vendor', async () => {
-        const response = await mkt.registerVendor(fakepvmultihash);
-        expect(response.vPubKeyMultihash).to.equal(fakepvmultihash);
+        const response = await mkt.registerVendor(fakevendordidid);
+        expect(response.vDidId).to.equal(fakevendordidid);
         // Calls
-        expect(mkt.chluIpfs.instance.crypto.storePublicKey.called).to.be.true;
-        expect(mkt.chluIpfs.instance.crypto.signMultihash.called).to.be.true;
-        expect(mkt.chluIpfs.pin.calledWith(fakepvmultihash)).to.be.true;
+        expect(mkt.chluIpfs.instance.did.signMultihash.called).to.be.true;
         expect(mkt.chluIpfs.pin.calledWith(fakemultihash)).to.be.true;
         // State
-        const vendor = await mkt.db.getVendor(response.vPubKeyMultihash);
+        const vendor = await mkt.db.getVendor(response.vDidId);
         expect(vendor).to.be.an('object');
-        expect(vendor.vPubKeyMultihash).to.equal(fakepvmultihash);
-        expect(vendor.vmKeyPairWIF)
+        expect(vendor.vDidId).to.equal(fakevendordidid);
+        expect(vendor.vmPrivateKey)
             .to.be.a('string');
         expect(vendor.vmPubKeyMultihash)
             .to.be.a('string');
@@ -97,82 +102,51 @@ describe('Marketplace (Unit)', () => {
         expect(vendor.vSignature)
             .to.be.null;
         // Response
-        expect(response.vPubKeyMultihash)
-            .to.equal(vendor.vPubKeyMultihash);
+        expect(response.vDidId)
+            .to.equal(vendor.vDidId);
         expect(response.mSignature)
             .to.equal(vendor.mSignature);
         expect(response).to.be.an('object');
     });
 
     it('can submit a vendor signature', async () => {
-        const vendorData = await mkt.registerVendor(fakepvmultihash);
+        const vendorData = await mkt.registerVendor(fakevendordidid);
         await mkt.updateVendorSignature(
-            vendorData.vPubKeyMultihash,
+            vendorData.vDidId,
             fakesignature,
-            fakepvmultihash
+            fakevendordidid
         );
-        expect(mkt.chluIpfs.instance.crypto.verifyMultihash.calledWith(
-            fakepvmultihash,
+        expect(mkt.chluIpfs.instance.did.verifyMultihash.calledWith(
+            fakevendordidid,
             vendorData.vmPubKeyMultihash,
             fakesignature
         )).to.be.true;
-        const vendor = await mkt.db.getVendor(vendorData.vPubKeyMultihash);
-        expect(vendor.vPubKeyMultihash).to.equal(fakepvmultihash);
+        const vendor = await mkt.db.getVendor(vendorData.vDidId);
+        expect(vendor.vDidId).to.equal(fakevendordidid);
         expect(vendor.vSignature).to.equal(fakesignature);
     });
 
     it('can list vendors', async () => {
-        await mkt.registerVendor(fakepvmultihash);
+        await mkt.registerVendor(fakevendordidid);
         const vendors = await mkt.getVendorIDs();
-        expect(vendors).to.deep.equal([fakepvmultihash]);
+        expect(vendors).to.deep.equal([fakevendordidid]);
     });
 
     it('can retrieve vendor information', async() => {
-        await mkt.registerVendor(fakepvmultihash);
-        const vendor = await mkt.getVendor(fakepvmultihash);
+        await mkt.registerVendor(fakevendordidid);
+        const vendor = await mkt.getVendor(fakevendordidid);
         // Intentionally check that the keypair is not returned
         expect(vendor).to.deep.equal({
             vmPubKeyMultihash: fakemultihash,
-            vPubKeyMultihash: fakepvmultihash,
+            vDidId: fakevendordidid,
             vSignature: null,
             mSignature: fakesignature
         });
     });
 
-    it('can create then reuse existing root keypair', async () => {
-        expect(mkt.rootKeyPair).to.be.null;
-        expect(mkt.pubKeyMultihash).to.be.null;
-        const keys = await mkt.getKeys();
-        expect(mkt.chluIpfs.pin.calledWith(mkt.pubKeyMultihash)).to.be.true;
-        expect(keys.source).to.equal('random');
-        expect(keys.keyPair).to.be.a('object');
-        expect(keys.pubKeyMultihash).to.be.a('string');
-        expect(keys.keyPair).to.equal(mkt.rootKeyPair);
-        expect(keys.pubKeyMultihash).to.equal(mkt.pubKeyMultihash);
-        const wif = keys.keyPair.toWIF();
-        // Load from memory the same keys
-        const sameKeys = await mkt.getKeys();
-        expect(sameKeys.source).to.equal('memory');
-        expect(sameKeys.keyPair.toWIF()).to.equal(wif);
-        // Delete keys from memory to see if loading from fs works
-        mkt.rootKeyPair = undefined;
-        mkt.pubKeyMultihash = undefined;
-        const fsKeys = await mkt.getKeys();
-        expect(fsKeys.source.substring(0, 2)).to.equal('fs');
-        expect(fsKeys.keyPair.toWIF()).to.equal(wif);
-        // Now delete keyfile and keys
-        rimraf.sync(keyFile);
-        mkt.rootKeyPair = undefined;
-        mkt.pubKeyMultihash = undefined;
-        // Should get a random key
-        const differentKeys = await mkt.getKeys();
-        expect(differentKeys.source).to.equal('random');
-        expect(differentKeys.keyPair.toWIF()).to.not.equal(wif);
-    });
-
     it('can create PoPRs', async () => {
-        const v = await mkt.registerVendor(fakepvmultihash);
-        const popr = await mkt.createPoPR(fakepvmultihash);
+        const v = await mkt.registerVendor(fakevendordidid);
+        const popr = await mkt.createPoPR(fakevendordidid);
         // Calls
         expect(mkt.chluIpfs.instance.crypto.signPoPR.called).to.be.true;
         // Schema

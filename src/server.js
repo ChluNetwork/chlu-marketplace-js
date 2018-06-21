@@ -27,10 +27,10 @@ app.post('/vendors/:id/popr', async (req, res) => {
 });
 
 app.get('/.well-known', async (req, res) => {
-    const keys = await app.locals.mkt.getKeys();
+    const didId = await app.locals.mkt.getDIDID();
     const id = await app.locals.mkt.getIPFSID();
     await respond(res, {
-        multihash: keys.pubKeyMultihash,
+        didId,
         ipfsId: id
     });
 });
