@@ -269,7 +269,7 @@ class Marketplace {
             const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
-            const valid = this.chluIpfs.instance.did.verifyMultihash(vDidId, PvmMultihash, signature);
+            const valid = this.chluIpfs.instance.did.verifyMultihash(vDidId, PvmMultihash, signature, true);
             if (valid) {
                 vendor.vSignature = signature;
                 await this.db.updateVendor(id, vendor);

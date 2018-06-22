@@ -33,9 +33,9 @@ cli
     .command('setup-vendor')
     .description('set up a vendor and return the keys')
     .option('-u, --url <s>', 'URL to access the marketplace', 'http://localhost:3000')
-    .option('-k, --key-pair <s>', 'use an existing keypair in WIF format')
+    .option('-n, --network <s>', 'Chlu network to use')
     .action(handleErrors(async cmd => {
-        await vendorSetup(cmd.url, cmd.keyPair);
+        await vendorSetup(cmd.url, cmd.network);
     }));
 
 cli.parse(process.argv);

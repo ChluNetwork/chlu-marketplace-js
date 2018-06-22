@@ -11,8 +11,8 @@ app.get('/vendors', async (req, res) => {
     await respond(res, app.locals.mkt.getVendorIDs());
 });
 app.post('/vendors', async (req, res) => {
-    const pubKeyMultihash = req.body.vendorPubKeyMultihash;
-    await respond(res, app.locals.mkt.registerVendor(pubKeyMultihash)); 
+    const didId = req.body.didId;
+    await respond(res, app.locals.mkt.registerVendor(didId)); 
 });
 app.post('/vendors/:id/signature', async (req, res) => {
     const signature = req.body.signature;

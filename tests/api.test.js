@@ -9,9 +9,9 @@ describe('HTTP API', () => {
         const server = require('../src/server');
         mkt = server.locals.mkt = {
             registerVendor: sinon.stub().resolves({
-                id: 'pvmultihash',
                 vDidId: 'fakevendordidid',
-                marketplaceSignature: 'fakesignature'
+                vmPubKeyMultihash: 'fakevmmultihash',
+                mSignature: 'fakesignature'
             }),
             updateVendorSignature: sinon.stub().resolves(),
             generatePoPR: sinon.stub().resolves(),
@@ -58,14 +58,14 @@ describe('HTTP API', () => {
     it('POST /vendors', async () => {
         await api.post('/vendors')
             .send({
-                vendorPubKeyMultihash: 'pvmultihash'
+                didId: 'fakevendordidid'
             })
             .expect({
-                id: 'pvmultihash',
                 vDidId: 'fakevendordidid',
-                marketplaceSignature: 'fakesignature'
+                vmPubKeyMultihash: 'fakevmmultihash',
+                mSignature: 'fakesignature'
             });
-        expect(mkt.registerVendor.calledWith('pvmultihash')).to.be.true;
+        expect(mkt.registerVendor.calledWith('fakevendordidid')).to.be.true;
     });
 
     it('POST /vendors/ven1/signature', async () => {
