@@ -93,3 +93,8 @@ await mkt.start()
 await mkt.registerVendor(...)
 await mkt.createPoPR(...)
 ```
+
+### Quickly setup a vendor
+
+There is a non interactive command that generates a new DID, then sets it up as
+a vendor on a marketplace. Istructions are in the [chlu-wallet README](https://github.com/ChluNetwork/chlu-wallet#set-up-marketplace)
