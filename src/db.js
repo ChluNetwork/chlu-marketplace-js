@@ -32,7 +32,7 @@ class DB {
                 operatorsAliases: false
             });
             this.Vendor = this.db.define('vendor', {
-                vmKeyPairWIF: {
+                vmPrivateKey: {
                     type: Sequelize.STRING,
                     unique: true
                 },
@@ -40,7 +40,7 @@ class DB {
                     type: Sequelize.STRING,
                     unique: true
                 },
-                vPubKeyMultihash: {
+                vDidId: {
                     type: Sequelize.STRING,
                     unique: true
                 },
@@ -63,52 +63,52 @@ class DB {
 
     async getVendorIDs() {
         const data = await this.Vendor.findAll({
-            attributes: ['vPubKeyMultihash']
+            attributes: ['vDidId']
         });
-        return data.map(d => d.vPubKeyMultihash);
+        return data.map(d => d.vDidId);
     }
 
     async getVendor(id) {
         const vendor = await this.Vendor.findOne({
             where: {
-                vPubKeyMultihash: id
+                vDidId: id
             }
         });
         if (vendor) {
             const v = vendor.toJSON();
             return {
                 mSignature: v.mSignature,
-                vPubKeyMultihash: v.vPubKeyMultihash,
+                vDidId: v.vDidId,
                 vSignature: v.vSignature,
                 vmPubKeyMultihash: v.vmPubKeyMultihash,
-                vmKeyPairWIF: v.vmKeyPairWIF
+                vmPrivateKey: v.vmPrivateKey
             };
         }
         return null;
     }
 
-    async getVMKeyPairWIF(id) {
+    async getVMPrivateKey(id) {
         const vendor = await this.Vendor.findOne({
             where: {
-                vPubKeyMultihash: id
+                vDidId: id
             }
         });
         if (vendor) {
-            return vendor.get('vmKeyPairWIF');
+            return vendor.get('vmPrivateKey');
         }
         return null;
     }
 
     async createVendor(id, data) {
         const vendor = await this.Vendor
-            .create(Object.assign({}, data, { vPubKeyMultihash: id }));
+            .create(Object.assign({}, data, { vDidId: id }));
         return vendor.toJSON();
     }
 
     async updateVendor(id, data) {
         const vendor = await this.Vendor.findOne({
             where: {
-                vPubKeyMultihash: id
+                vDidId: id
             }
         });
         if (vendor) {

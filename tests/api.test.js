@@ -9,9 +9,9 @@ describe('HTTP API', () => {
         const server = require('../src/server');
         mkt = server.locals.mkt = {
             registerVendor: sinon.stub().resolves({
-                id: 'pvmultihash',
-                multihash: 'fakemultihash',
-                marketplaceSignature: 'fakesignature'
+                vDidId: 'fakevendordidid',
+                vmPubKeyMultihash: 'fakevmmultihash',
+                mSignature: 'fakesignature'
             }),
             updateVendorSignature: sinon.stub().resolves(),
             generatePoPR: sinon.stub().resolves(),
@@ -19,13 +19,11 @@ describe('HTTP API', () => {
                 'ven1', 'ven2'
             ]),
             getVendor: sinon.stub().resolves({
-                multihash: 'fakemultihash',
+                vDidId: 'fakevendordidid',
                 marketplaceSignature: 'fakesignature',
                 vendorSignature: null
             }),
-            getKeys: sinon.stub().resolves({
-                pubKeyMultihash: 'fakemultihash'
-            }),
+            getDIDID: sinon.stub().resolves('fakemarketplacedid'),
             createPoPR: sinon.stub().resolves({
                 signature: 'fakesignature'
             }),
@@ -44,7 +42,7 @@ describe('HTTP API', () => {
 
     it('GET /vendors/ven1', async () => {
         await api.get('/vendors/ven1').expect({
-            multihash: 'fakemultihash',
+            vDidId: 'fakevendordidid',
             marketplaceSignature: 'fakesignature',
             vendorSignature: null
         });
@@ -53,21 +51,21 @@ describe('HTTP API', () => {
 
     it('GET /.well-known', async () => {
         await api.get('/.well-known').expect({
-            multihash: 'fakemultihash'
+            didId: 'fakemarketplacedid'
         });
     });
 
     it('POST /vendors', async () => {
         await api.post('/vendors')
             .send({
-                vendorPubKeyMultihash: 'pvmultihash'
+                didId: 'fakevendordidid'
             })
             .expect({
-                id: 'pvmultihash',
-                multihash: 'fakemultihash',
-                marketplaceSignature: 'fakesignature'
+                vDidId: 'fakevendordidid',
+                vmPubKeyMultihash: 'fakevmmultihash',
+                mSignature: 'fakesignature'
             });
-        expect(mkt.registerVendor.calledWith('pvmultihash')).to.be.true;
+        expect(mkt.registerVendor.calledWith('fakevendordidid')).to.be.true;
     });
 
     it('POST /vendors/ven1/signature', async () => {
