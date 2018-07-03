@@ -69,12 +69,14 @@ describe('HTTP API', () => {
     });
 
     it('POST /vendors/ven1/signature', async () => {
+        const signature = {
+            signatureValue: 'fakevendorsignature',
+            creator: 'ven1'
+        }
         await api.post('/vendors/ven1/signature')
-            .send({
-                signature: 'fakevendorsignature'
-            })
+            .send({ signature })
             .expect(200);
-        expect(mkt.updateVendorSignature.calledWith('ven1', 'fakevendorsignature'))
+        expect(mkt.updateVendorSignature.calledWith(signature))
             .to.be.true;
     });
 

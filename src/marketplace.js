@@ -266,7 +266,6 @@ class Marketplace {
      * @memberof Marketplace
      */
     async updateVendorSignature(signature) {
-        console.log(signature)
         const id = signature.creator;
         const signatureValue = signature.signatureValue
         validateDidId(id);
@@ -304,7 +303,7 @@ class Marketplace {
      * @param {string} options.marketplace_url
      * @param {string} options.marketplace_vendor_url
      * @param {string} options.key_location
-     * @returns {Promise<PoPR>}
+     * @returns {Promise<Object>} returns an object with `popr` and `multihash`
      * @memberof Marketplace
      */
     async createPoPR(vendorId, options = {}) {
@@ -312,7 +311,7 @@ class Marketplace {
         await this.start();
         try {
             const vendor = await this.getVendor(vendorId);
-            const popr = {
+            const data = {
                 item_id: options.item_id || 'N/A',
                 invoice_id: options.invoice_id || 'N/A',
                 customer_id: options.customer_id || 'N/A',
@@ -323,17 +322,27 @@ class Marketplace {
                 marketplace_url: this.marketplaceLocation.slice(0),
                 marketplace_vendor_url: options.marketplace_vendor_url || (this.marketplaceLocation.slice(0) + '/vendors/' + vendor.vDidId),
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
-                vendor_did_id: vendor.vDidId,
-                vendor_signature: vendor.vSignature,
-                marketplace_signature: vendor.mSignature,
+                vendor_did: vendor.vDidId,
+                vendor_signature: {
+                    type: 'did:chlu',
+                    creator: vendor.vDidId,
+                    signatureValue: vendor.vSignature
+                },
+                marketplace_signature: {
+                    type: 'did:chlu',
+                    creator: this.chluIpfs.instance.did.didId,
+                    signatureValue: vendor.mSignature
+                },
                 vendor_encryption_key_location: '', // TODO: support this
                 chlu_version: 0,
                 attributes: options.attributes || [],
                 signature: ''
             };
             const keyPair = await this.getVMKeyPair(vendorId);
-            const signedPoPR = await this.chluIpfs.instance.crypto.signPoPR(popr, keyPair);
-            return signedPoPR;
+            const popr = await this.chluIpfs.instance.crypto.signPoPR(data, keyPair);
+            const encoded = await this.chluIpfs.instance.protobuf.PoPR.encode(popr)
+            const multihash = await this.chluIpfs.instance.ipfsUtils.put(encoded); 
+            return { popr, multihash };
         } catch (error) {
             if (error instanceof HttpError) throw error;
             throw new HttpError(500, 'An error has occurred: ' + error ? error.message : 'Unknown error');
@@ -346,7 +355,6 @@ function validateDidId(didId) {
         const valid = typeof didId === 'string' && didId.indexOf('did:chlu:') === 0
         if (!valid) throw Error()
     } catch (error) {
-        console.log('invalid', didId)
         throw HttpError(400, 'DID ID is invalid: ' + didId);
     }
     return true

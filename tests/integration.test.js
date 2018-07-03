@@ -14,7 +14,7 @@ describe('Marketplace (Integration)', () => {
 
     async function getRandomVendor() {
         const did = await DID.generateDID()
-        await mkt.chluIpfs.instance.did.publish(did, false)
+        await mkt.chluIpfs.instance.did.publish(did.publicDidDocument, false)
         return did
     }
 
@@ -97,19 +97,20 @@ describe('Marketplace (Integration)', () => {
         expect(response).to.be.an('object');
         // Verify signatures
         const mDidId = await mkt.getDIDID()
-        const valid = await mkt.chluIpfs.instance.did.verifyMultihash(mDidId, response.vmPubKeyMultihash, vendor.mSignature);
+        const signature = {
+            type: 'did:chlu',
+            signatureValue: vendor.mSignature,
+            creator: mkt.chluIpfs.instance.did.didId
+        }
+        const valid = await mkt.chluIpfs.instance.did.verifyMultihash(mDidId, response.vmPubKeyMultihash, signature);
         expect(valid).to.be.true;
     });
 
     it('can submit a vendor signature', async () => {
         const v = await getRandomVendor();
         const vendorData = await mkt.registerVendor(v.publicDidDocument.id);
-        const signature = await mkt.chluIpfs.instance.did.signMultihash(vendorData.vmPubKeyMultihash, v.privateKeyBase58);
-        await mkt.updateVendorSignature(
-            vendorData.vDidId,
-            signature,
-            v.publicDidDocument.id
-        );
+        const signature = await mkt.chluIpfs.instance.did.signMultihash(vendorData.vmPubKeyMultihash, v);
+        await mkt.updateVendorSignature(signature);
         expect(mkt.chluIpfs.instance.did.verifyMultihash.calledWith(
             v.publicDidDocument.id,
             vendorData.vmPubKeyMultihash,
@@ -117,7 +118,7 @@ describe('Marketplace (Integration)', () => {
         )).to.be.true;
         const vendor = await mkt.db.getVendor(vendorData.vDidId);
         expect(vendor.vDidId).to.equal(v.publicDidDocument.id);
-        expect(vendor.vSignature).to.equal(signature);
+        expect(vendor.vSignature).to.equal(signature.signatureValue);
     });
 
     it('can list vendors', async () => {
@@ -143,15 +144,11 @@ describe('Marketplace (Integration)', () => {
         // Vendor full setup
         const v = await getRandomVendor();
         const vendorData = await mkt.registerVendor(v.publicDidDocument.id);
-        const signature = await mkt.chluIpfs.instance.did.signMultihash(vendorData.vmPubKeyMultihash, v.privateKeyBase58);
-        await mkt.updateVendorSignature(
-            vendorData.vDidId,
-            signature,
-            v.publicDidDocument.id
-        );
+        const signature = await mkt.chluIpfs.instance.did.signMultihash(vendorData.vmPubKeyMultihash, v);
+        await mkt.updateVendorSignature(signature);
         const vendor = await mkt.db.getVendor(vendorData.vDidId);
         // Create PoPR
-        const popr = await mkt.createPoPR(v.publicDidDocument.id);
+        const { popr, multihash } = await mkt.createPoPR(v.publicDidDocument.id);
         // Check that the right calls were made
         expect(mkt.chluIpfs.instance.crypto.signPoPR.called).to.be.true;
         // Check the popr content
@@ -167,7 +164,7 @@ describe('Marketplace (Integration)', () => {
         expect(popr.key_location).to.equal('/ipfs/' + vendor.vmPubKeyMultihash);
         expect(popr.chlu_version).to.equal(0);
         expect(Array.isArray(popr.attributes)).to.be.true;
-        expect(popr.signature).to.be.a('string');
+        expect(popr.signature.signatureValue).to.be.a('string');
         // Check popr validity
         mkt.chluIpfs.instance.validator.fetchMarketplaceDIDID = sinon.stub().callsFake(async url => {
             // Stub key retrieval from marketplace
@@ -176,5 +173,9 @@ describe('Marketplace (Integration)', () => {
         });
         const valid = await mkt.chluIpfs.instance.validator.validatePoPRSignaturesAndKeys(popr);
         expect(valid).to.be.true;
+        // Check storage on IPFS
+        const buffer = await mkt.chluIpfs.instance.ipfsUtils.get(multihash)
+        const decoded = await mkt.chluIpfs.instance.protobuf.PoPR.decode(buffer)
+        expect(decoded.created_at).to.equal(popr.created_at)
     });
 });
