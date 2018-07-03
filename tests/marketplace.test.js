@@ -7,12 +7,13 @@ const path = require('path');
 const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 const { toMultihash } = require('./utils/ipfs');
 
-describe('Marketplace (Unit)', () => {
-    let mkt, fakemultihash, fakevendordidid, fakesignature = 'fakesignature';
+describe.only('Marketplace (Unit)', () => {
+    let mkt, fakemultihash, fakevendordidid, fakesignature;
 
     before(async () => {
         fakemultihash = await toMultihash('fakemultihash');
-        fakevendordidid = await 'did:vendor';
+        fakevendordidid = await 'did:chlu:vendor';
+        fakesignature = { signatureValue: 'fakesignature', creator: fakevendordidid }
     });
 
     beforeEach(() => {
@@ -35,6 +36,7 @@ describe('Marketplace (Unit)', () => {
                     id: sinon.stub().resolves('fakeIPFSid')
                 },
                 did: {
+                    publish: sinon.stub().resolves(),
                     signMultihash: sinon.stub().resolves(fakesignature),
                     verifyMultihash: sinon.stub().resolves(true),
                 },
@@ -111,11 +113,7 @@ describe('Marketplace (Unit)', () => {
 
     it('can submit a vendor signature', async () => {
         const vendorData = await mkt.registerVendor(fakevendordidid);
-        await mkt.updateVendorSignature(
-            vendorData.vDidId,
-            fakesignature,
-            fakevendordidid
-        );
+        await mkt.updateVendorSignature(fakesignature);
         expect(mkt.chluIpfs.instance.did.verifyMultihash.calledWith(
             fakevendordidid,
             vendorData.vmPubKeyMultihash,
@@ -123,7 +121,7 @@ describe('Marketplace (Unit)', () => {
         )).to.be.true;
         const vendor = await mkt.db.getVendor(vendorData.vDidId);
         expect(vendor.vDidId).to.equal(fakevendordidid);
-        expect(vendor.vSignature).to.equal(fakesignature);
+        expect(vendor.vSignature).to.equal(fakesignature.signatureValue);
     });
 
     it('can list vendors', async () => {
@@ -140,7 +138,7 @@ describe('Marketplace (Unit)', () => {
             vmPubKeyMultihash: fakemultihash,
             vDidId: fakevendordidid,
             vSignature: null,
-            mSignature: fakesignature
+            mSignature: fakesignature.signatureValue
         });
     });
 

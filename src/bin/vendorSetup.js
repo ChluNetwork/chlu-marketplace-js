@@ -66,6 +66,7 @@ async function register(url, didId) {
 async function submitSignature(url, chluIpfs, vmPubKeyMultihash) {
     log('===> Signature')
     const signature = await chluIpfs.instance.did.signMultihash(vmPubKeyMultihash);
+    log(JSON.stringify(signature))
     const response = await axios.post(url + '/vendors/' + chluIpfs.instance.did.didId + '/signature', { signature });
     if (response.status !== 200) {
         throw new Error('Submitting signature failed: server returned ' + response.status);

@@ -19,12 +19,13 @@ async function serve(port = 3000, configurationFile = null) {
         if (conf.port) p = conf.port;
     }
     await mktApp.locals.mkt.start();
-    return new Promise(resolve => {
+    await new Promise(resolve => {
         app.listen(p, () => {
             console.log('Chlu Marketplace listening on port', p);
             resolve();
         });
     });
+    return { app, mktApp, mkt: mktApp.locals.mkt}
 }
 
 async function readFile(f) {
