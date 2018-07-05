@@ -27,13 +27,15 @@ describe('HTTP API', () => {
             createPoPR: sinon.stub().resolves({
                 signature: 'fakesignature'
             }),
-            getIPFSID: sinon.stub.resolves('fakeIPFSid')
+            getInfo: sinon.stub().resolves({ didId: 'fakemarketplacedid' })
         };
         api = request(server);
     });
 
     it('GET /', async () => {
-        await api.get('/').expect(200);
+        await api.get('/').expect({
+            didId: 'fakemarketplacedid'
+        });
     });
 
     it('GET /vendors', async () => {

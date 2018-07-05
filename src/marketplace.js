@@ -99,9 +99,13 @@ class Marketplace {
         }
     }
 
-    async getIPFSID() {
-        await this.start();
-        return await this.chluIpfs.instance.ipfsUtils.id();
+    async getInfo() {
+        await this.start()
+        return {
+            ipfsId: await this.chluIpfs.instance.ipfsUtils.id(),
+            didId: this.chluIpfs.instance.did.didId,
+            network: this.chluIpfs.instance.network
+        }
     }
 
     /**

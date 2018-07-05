@@ -1707,7 +1707,7 @@ chlu-did@ChluNetwork/chlu-did:
 
 chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#protobuf-upgrade:
   version "0.2.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/61e6d7f54c9a574b0c64ec7f6b1df3204b03bbf2"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/e113f3fdc567d36679c2ce0db289e378968a6191"
   dependencies:
     axios "^0.18.0"
     blockcypher ChluNetwork/node-client

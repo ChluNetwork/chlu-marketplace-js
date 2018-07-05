@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 const ChluIPFS = require('chlu-ipfs-support');
-const axios = require('axios');
 const os = require('os');
 const path = require('path');
 
@@ -16,16 +15,12 @@ async function vendorSetup(url = 'http://localhost:3000', network) {
         await chluIpfs.start();
         log('Using Chlu Network ' + chluIpfs.instance.network)
         log('Using DID ' + chluIpfs.instance.did.didId)
-        await chluIpfs.instance.did.publish()
-        log('DID Published')
     } catch (error) {
         log('Could not prepare required data: ' + error.message || error);
         return;
     }
     try {
-        log('Registering vendor to ' + url);
-        const { vmPubKeyMultihash } = await register(url, chluIpfs.instance.did.didId);
-        await submitSignature(url, chluIpfs, vmPubKeyMultihash);
+        await chluIpfs.instance.vendor.registerToMarketplace(url)
         log('\n========= SUCCESS ==========')
     } catch (error) {
         log('\n========== ERROR ==========')
@@ -40,7 +35,7 @@ async function vendorSetup(url = 'http://localhost:3000', network) {
     log('\n')
     log('Stopping gracefully');
     await chluIpfs.stop();
-    log('Deleting data');
+    //log('Deleting data');
     //rimraf.sync(directory)
     log('Done')
     process.exit(0) // rimraf leaves a dirty event loop!
@@ -52,34 +47,6 @@ function getChluIPFS(opt) {
         directory 
     }, opt));
     return chluIpfs;
-}
-
-async function register(url, didId) {
-    log('===> Check if already registered')
-    const vendorInfo = await axios.get(url + `/vendors/${didId}`)
-    if (vendorInfo.data && vendorInfo.data.vDidId === didId) {
-        // Already exists
-        return vendorInfo.data
-    } else  {
-        log('===> Register Request for ' + didId)
-        const response = await axios.post(url + '/vendors', {
-            didId
-        });
-        log('<=== Response:\n' + JSON.stringify(response.data, null, 2))
-        if (response.status !== 200) throw new Error('Registering failed: server returned ' + response.status);
-        return response.data;
-    }
-}
-
-async function submitSignature(url, chluIpfs, vmPubKeyMultihash) {
-    log('===> Signature')
-    const signature = await chluIpfs.instance.did.signMultihash(vmPubKeyMultihash);
-    log(JSON.stringify(signature))
-    const response = await axios.post(url + '/vendors/' + chluIpfs.instance.did.didId + '/signature', { signature });
-    if (response.status !== 200) {
-        throw new Error('Submitting signature failed: server returned ' + response.status);
-    }
-    log('<=== OK')
 }
 
 module.exports = vendorSetup;

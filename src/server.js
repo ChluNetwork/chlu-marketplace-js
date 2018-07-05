@@ -5,7 +5,7 @@ const app = express();
 app.locals.mkt = new Marketplace();
 app.use(express.json());
 
-app.get('/', (req, res) => res.send('Chlu Marketplace'));
+app.get('/', (req, res) => respond(res, app.locals.mkt.getInfo()));
 
 app.get('/vendors', async (req, res) => {
     await respond(res, app.locals.mkt.getVendorIDs());
@@ -30,14 +30,7 @@ app.post('/vendors/:id/popr', async (req, res) => {
     await respond(res, app.locals.mkt.createPoPR(req.params.id, req.body || {}));
 });
 
-app.get('/.well-known', async (req, res) => {
-    const didId = await app.locals.mkt.getDIDID();
-    const id = await app.locals.mkt.getIPFSID();
-    await respond(res, {
-        didId,
-        ipfsId: id
-    });
-});
+app.get('/.well-known', (req, res) => respond(res, app.locals.mkt.getInfo()));
 
 async function respond(res, promise) {
     try {
