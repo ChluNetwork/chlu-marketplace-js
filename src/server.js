@@ -23,7 +23,7 @@ app.post('/vendors/:id/signature', async (req, res) => {
     }
 });
 app.get('/vendors/:id', async (req, res) => {
-    respond(res, app.locals.mkt.getVendor(req.params.id));
+    await respond(res, app.locals.mkt.getVendor(req.params.id));
 });
 
 app.post('/vendors/:id/popr', async (req, res) => {
@@ -40,7 +40,7 @@ async function respond(res, promise) {
     } catch (err) {
         console.log('An error has been caught while responding to an HTTP request');
         console.trace(err);
-        res.status(err.code || 500).send(err.message || err);
+        res.status((err && err.code) || 500).send((err && err.message) || err);
     }
 }
 
