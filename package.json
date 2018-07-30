@@ -26,11 +26,12 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#did",
+    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#protobuf-upgrade",
     "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
     "mkdirp": "^0.5.1",
+    "moment": "^2.22.2",
     "morgan": "^1.9.0",
     "multihashes": "^0.4.13",
     "rimraf": "^2.6.2",

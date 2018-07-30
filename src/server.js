@@ -5,7 +5,7 @@ const app = express();
 app.locals.mkt = new Marketplace();
 app.use(express.json());
 
-app.get('/', (req, res) => res.send('Chlu Marketplace'));
+app.get('/', (req, res) => respond(res, app.locals.mkt.getInfo()));
 
 app.get('/vendors', async (req, res) => {
     await respond(res, app.locals.mkt.getVendorIDs());
@@ -16,24 +16,21 @@ app.post('/vendors', async (req, res) => {
 });
 app.post('/vendors/:id/signature', async (req, res) => {
     const signature = req.body.signature;
-    await respond(res, app.locals.mkt.updateVendorSignature(req.params.id, signature)); 
+    if (signature.creator !== req.params.id) {
+        res.status(400).send('DID ID in the URI does not match signature creator')
+    } else {
+        await respond(res, app.locals.mkt.updateVendorSignature(signature)); 
+    }
 });
 app.get('/vendors/:id', async (req, res) => {
-    respond(res, app.locals.mkt.getVendor(req.params.id));
+    await respond(res, app.locals.mkt.getVendor(req.params.id));
 });
 
 app.post('/vendors/:id/popr', async (req, res) => {
     await respond(res, app.locals.mkt.createPoPR(req.params.id, req.body || {}));
 });
 
-app.get('/.well-known', async (req, res) => {
-    const didId = await app.locals.mkt.getDIDID();
-    const id = await app.locals.mkt.getIPFSID();
-    await respond(res, {
-        didId,
-        ipfsId: id
-    });
-});
+app.get('/.well-known', (req, res) => respond(res, app.locals.mkt.getInfo()));
 
 async function respond(res, promise) {
     try {
@@ -43,7 +40,7 @@ async function respond(res, promise) {
     } catch (err) {
         console.log('An error has been caught while responding to an HTTP request');
         console.trace(err);
-        res.status(err.code || 500).send(err.message || err);
+        res.status((err && err.code) || 500).send((err && err.message) || err);
     }
 }
 

@@ -6,6 +6,8 @@ const serve = require('./serve');
 const vendorSetup = require('./vendorSetup');
 const package = require('../../package.json');
 
+let server = null
+
 function handleErrors(fn) {
     return function (...args) {
         fn(...args).catch(err => {
@@ -26,7 +28,7 @@ cli
     .option('-p, --port <n>', 'port to listen on', parseInt, 3000)
     .option('-c, --configuration-file <s>', 'configuration file to use')
     .action(handleErrors(async cmd => {
-        await serve(cmd.port, cmd.configurationFile);
+        server = await serve(cmd.port, cmd.configurationFile);
     }));
 
 cli
@@ -42,4 +44,22 @@ cli.parse(process.argv);
 
 if (!process.argv.slice(2).length) {
     cli.help();
+}
+
+process.on('SIGINT', async function() {
+    try {
+        await stop()
+        process.exit(0);
+    } catch(exception) {
+        console.log(exception);
+        process.exit(1);
+    }
+});
+
+async function stop() {
+    console.log('Stopping gracefully');
+    if (server && server.mkt) {
+        await server.mkt.stop()
+    }
+    console.log('Goodbye!');
 }

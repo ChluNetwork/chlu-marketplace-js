@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 const ChluIPFS = require('chlu-ipfs-support');
-const axios = require('axios');
 const os = require('os');
 const path = require('path');
-const rimraf = require('rimraf')
 
 const log = msg => console.log(msg);
 
@@ -22,9 +20,7 @@ async function vendorSetup(url = 'http://localhost:3000', network) {
         return;
     }
     try {
-        log('Registering vendor to ' + url);
-        const { vmPubKeyMultihash } = await register(url, chluIpfs.instance.did.didId);
-        await submitSignature(url, chluIpfs, vmPubKeyMultihash);
+        await chluIpfs.instance.vendor.registerToMarketplace(url)
         log('\n========= SUCCESS ==========')
     } catch (error) {
         log('\n========== ERROR ==========')
@@ -39,8 +35,8 @@ async function vendorSetup(url = 'http://localhost:3000', network) {
     log('\n')
     log('Stopping gracefully');
     await chluIpfs.stop();
-    log('Deleting data');
-    rimraf.sync(directory)
+    //log('Deleting data');
+    //rimraf.sync(directory)
     log('Done')
     process.exit(0) // rimraf leaves a dirty event loop!
 }
@@ -51,26 +47,6 @@ function getChluIPFS(opt) {
         directory 
     }, opt));
     return chluIpfs;
-}
-
-async function register(url, didId) {
-    log('===> Register Request for ' + didId)
-    const response = await axios.post(url + '/vendors', {
-        didId
-    });
-    log('<=== Response:\n' + JSON.stringify(response.data, null, 2))
-    if (response.status !== 200) throw new Error('Registering failed: server returned ' + response.status);
-    return response.data;
-}
-
-async function submitSignature(url, chluIpfs, vmPubKeyMultihash) {
-    log('===> Signature')
-    const signature = await chluIpfs.instance.did.signMultihash(vmPubKeyMultihash);
-    const response = await axios.post(url + '/vendors/' + chluIpfs.instance.did.didId + '/signature', { signature });
-    if (response.status !== 200) {
-        throw new Error('Submitting signature failed: server returned ' + response.status);
-    }
-    log('<=== OK')
 }
 
 module.exports = vendorSetup;

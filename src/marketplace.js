@@ -2,6 +2,7 @@ const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
 const DB = require('./db');
 const path = require('path');
+const moment = require('moment')
 const HttpError = require('./utils/error');
 
 /**
@@ -98,9 +99,13 @@ class Marketplace {
         }
     }
 
-    async getIPFSID() {
-        await this.start();
-        return await this.chluIpfs.instance.ipfsUtils.id();
+    async getInfo() {
+        await this.start()
+        return {
+            ipfsId: await this.chluIpfs.instance.ipfsUtils.id(),
+            didId: this.chluIpfs.instance.did.didId,
+            network: this.chluIpfs.instance.network
+        }
     }
 
     /**
@@ -221,7 +226,7 @@ class Marketplace {
             const vendor = await this.db.createVendor(id, {
                 vmPrivateKey: exported,
                 vmPubKeyMultihash,
-                mSignature: signature,
+                mSignature: signature.signatureValue,
                 vSignature: null,
                 vDidId: id
             });
@@ -257,21 +262,26 @@ class Marketplace {
      * Create/Update the vendor signature for a vendor-marketplace key
      * 
      * @param {string} vDidId the vendor's DID ID
+     * @param {Object} signature
+     * @param {string} signature.creator the did id used to sign
+     * @param {string} signature.signatureValue the hex encoded signature as a string
      * @returns {Promise}
      * @throws {Error} if the signature is not valid or the vendor does not exist
      * @memberof Marketplace
      */
-    async updateVendorSignature(vDidId, signature) {
-        const id = vDidId;
+    async updateVendorSignature(signature) {
+        const id = signature.creator;
+        const signatureValue = signature.signatureValue
         validateDidId(id);
         await this.start();
         try {
             const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
-            const valid = this.chluIpfs.instance.did.verifyMultihash(vDidId, PvmMultihash, signature, true);
+            // wait until the DID gets replicated into the marketplace, don't fail if not found
+            const valid = await this.chluIpfs.instance.did.verifyMultihash(id, PvmMultihash, signature, true);
             if (valid) {
-                vendor.vSignature = signature;
+                vendor.vSignature = signatureValue;
                 await this.db.updateVendor(id, vendor);
             } else {
                 throw new HttpError(400, 'Signature is not valid');
@@ -297,7 +307,7 @@ class Marketplace {
      * @param {string} options.marketplace_url
      * @param {string} options.marketplace_vendor_url
      * @param {string} options.key_location
-     * @returns {Promise<PoPR>}
+     * @returns {Promise<Object>} returns an object with `popr` and `multihash`
      * @memberof Marketplace
      */
     async createPoPR(vendorId, options = {}) {
@@ -305,28 +315,38 @@ class Marketplace {
         await this.start();
         try {
             const vendor = await this.getVendor(vendorId);
-            const popr = {
+            const data = {
                 item_id: options.item_id || 'N/A',
                 invoice_id: options.invoice_id || 'N/A',
                 customer_id: options.customer_id || 'N/A',
-                created_at: options.created_at || Date.now(),
+                created_at: options.created_at || moment().unix(),
                 expires_at: options.expires_at || 0,
                 currency_symbol: options.currency_symbol || 'N/A',
                 amount: options.amount || 0,
                 marketplace_url: this.marketplaceLocation.slice(0),
                 marketplace_vendor_url: options.marketplace_vendor_url || (this.marketplaceLocation.slice(0) + '/vendors/' + vendor.vDidId),
                 key_location: '/ipfs/' + vendor.vmPubKeyMultihash,
-                vendor_did_id: vendor.vDidId,
-                vendor_signature: vendor.vSignature,
-                marketplace_signature: vendor.mSignature,
+                vendor_did: vendor.vDidId,
+                vendor_signature: {
+                    type: 'did:chlu',
+                    creator: vendor.vDidId,
+                    signatureValue: vendor.vSignature
+                },
+                marketplace_signature: {
+                    type: 'did:chlu',
+                    creator: this.chluIpfs.instance.did.didId,
+                    signatureValue: vendor.mSignature
+                },
                 vendor_encryption_key_location: '', // TODO: support this
                 chlu_version: 0,
-                attributes: [],
+                attributes: options.attributes || [],
                 signature: ''
             };
             const keyPair = await this.getVMKeyPair(vendorId);
-            const signedPoPR = await this.chluIpfs.instance.crypto.signPoPR(popr, keyPair);
-            return signedPoPR;
+            const popr = await this.chluIpfs.instance.crypto.signPoPR(data, keyPair);
+            const encoded = await this.chluIpfs.instance.protobuf.PoPR.encode(popr)
+            const multihash = await this.chluIpfs.instance.ipfsUtils.put(encoded); 
+            return { popr, multihash };
         } catch (error) {
             if (error instanceof HttpError) throw error;
             throw new HttpError(500, 'An error has occurred: ' + error ? error.message : 'Unknown error');
@@ -336,10 +356,9 @@ class Marketplace {
 
 function validateDidId(didId) {
     try {
-        const valid = typeof didId === 'string' && didId.indexOf('did:') === 0
+        const valid = typeof didId === 'string' && didId.indexOf('did:chlu:') === 0
         if (!valid) throw Error()
     } catch (error) {
-        console.log('invalid', didId)
         throw HttpError(400, 'DID ID is invalid: ' + didId);
     }
     return true
