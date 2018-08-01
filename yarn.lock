@@ -1720,10 +1720,11 @@ chlu-did@ChluNetwork/chlu-did:
     bs58 "4.0.1"
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
+    jsonld-signatures "2.3.0"
 
-chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#protobuf-upgrade:
+chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#misc-features:
   version "0.2.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/d17eb5982bb272ef96aa324ae2f477607655e128"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/e9a35bd53ac26f39875e5dd9c6f52a4c73f73b27"
   dependencies:
     axios "^0.18.0"
     blockcypher ChluNetwork/node-client
@@ -1735,7 +1736,6 @@ chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#protobuf-upgrade:
     elliptic "^6.4.0"
     ipfs "~0.28.2"
     ipfs-api "^20.0.0"
-    libp2p-websocket-star-rendezvous "^0.2.3"
     lodash "^4.17.5"
     lru-cache "^4.1.2"
     moment "^2.22.2"
@@ -5263,7 +5263,7 @@ level-js@^2.2.4:
     typedarray-to-buffer "~1.0.0"
     xtend "~2.1.2"
 
-"level-js@github:timkuijsten/level.js#idbunwrapper":
+level-js@timkuijsten/level.js#idbunwrapper:
   version "2.2.3"
   resolved "https://codeload.github.com/timkuijsten/level.js/tar.gz/18e03adab34c49523be7d3d58fafb0c632f61303"
   dependencies:
@@ -6338,7 +6338,7 @@ multihashing-async@~0.5.1:
     murmurhash3js "^3.0.1"
     nodeify "^1.0.1"
 
-"multiplex@github:dignifiedquire/multiplex":
+multiplex@dignifiedquire/multiplex:
   version "6.7.0"
   resolved "https://codeload.github.com/dignifiedquire/multiplex/tar.gz/b5d5edd30454e2c978ee8c52df86f5f4840d2eab"
   dependencies:

@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#protobuf-upgrade",
+    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#misc-features",
     "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
