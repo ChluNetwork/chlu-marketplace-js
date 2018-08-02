@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
+const Logger = require('chlu-ipfs-support/src/utils/logger')
 const DB = require('./db');
 const path = require('path');
 const moment = require('moment')
@@ -42,10 +43,11 @@ class Marketplace {
         const opt = options.chluIpfs || {};
         this.chluIpfs = new ChluIPFS(Object.assign({
             // Don't use ~/.chlu to not conflict with the service node
-            directory: path.join(process.env.HOME, '.chlu/marketplace')
+            directory: path.join(process.env.HOME, '.chlu/marketplace'),
+            logger: options.logger
         }, opt));
         if (options.ipfs) this.chluIpfs.ipfs = options.ipfs
-        this.logger = this.chluIpfs.logger
+        this.logger = options.logger || this.chluIpfs.logger || Logger
         this.db = new DB(options.db);
         // TODO: docs for this option
         this.marketplaceLocation = options.marketplaceLocation || 'http://localhost';
@@ -222,14 +224,14 @@ class Marketplace {
             const {
                 keyPair: vmKeyPair,
                 pubKeyMultihash: vmPubKeyMultihash
-            } = await this.chluIpfs.instance.crypto.generateKeyPair()
+            } = await this.chluIpfs.crypto.generateKeyPair()
             this.logger.debug(`pinning key pair ${vmPubKeyMultihash}`)
             await this.chluIpfs.pin(vmPubKeyMultihash)
             // TODO: request pin?
             this.logger.debug(`signing key pair ${vmPubKeyMultihash}`)
             const signature = await this.chluIpfs.didIpfsHelper.signMultihash(vmPubKeyMultihash);
             this.logger.debug(`exporting key pair ${vmPubKeyMultihash}`)
-            const exported = await this.chluIpfs.instance.crypto.exportKeyPair(vmKeyPair)
+            const exported = await this.chluIpfs.crypto.exportKeyPair(vmKeyPair)
             this.logger.debug(`creating vendor in DB ${vDidId}`)
             const vendor = await this.db.createVendor(id, {
                 vmPrivateKey: exported,
