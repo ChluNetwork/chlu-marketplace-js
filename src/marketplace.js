@@ -43,7 +43,9 @@ class Marketplace {
         this.chluIpfs = new ChluIPFS(Object.assign({
             // Don't use ~/.chlu to not conflict with the service node
             directory: path.join(process.env.HOME, '.chlu/marketplace')
-        }, opt, { type: ChluIPFS.types.marketplace }));
+        }, opt));
+        if (options.ipfs) this.chluIpfs.ipfs = options.ipfs
+        this.logger = this.chluIpfs.logger
         this.db = new DB(options.db);
         // TODO: docs for this option
         this.marketplaceLocation = options.marketplaceLocation || 'http://localhost';
@@ -102,9 +104,9 @@ class Marketplace {
     async getInfo() {
         await this.start()
         return {
-            ipfsId: await this.chluIpfs.instance.ipfsUtils.id(),
-            didId: this.chluIpfs.instance.did.didId,
-            network: this.chluIpfs.instance.network
+            ipfsId: await this.chluIpfs.ipfsUtils.id(),
+            didId: this.chluIpfs.didIpfsHelper.didId,
+            network: this.chluIpfs.network
         }
     }
 
@@ -126,7 +128,7 @@ class Marketplace {
      */
     async getDIDID() {
         await this.start();
-        return this.chluIpfs.instance.did.didId
+        return this.chluIpfs.didIpfsHelper.didId
     }
 
     /**
@@ -197,7 +199,7 @@ class Marketplace {
         await this.start();
         const privKey = await this.db.getVMPrivateKey(vendorId);
         if (privKey === null) throw new Error('Private key for vendor not found');
-        const imported = await this.chluIpfs.instance.crypto.importKeyPair(privKey)
+        const imported = await this.chluIpfs.crypto.importKeyPair(privKey)
         return imported.keyPair
     }
 
@@ -211,18 +213,24 @@ class Marketplace {
      * @memberof Marketplace
      */
     async registerVendor(vDidId) {
+        this.logger.debug(`starting registerVendor ${vDidId}`)
         const id = vDidId
         validateDidId(id);
         await this.start();
         try {
+            this.logger.debug('generating key pair')
             const {
                 keyPair: vmKeyPair,
                 pubKeyMultihash: vmPubKeyMultihash
             } = await this.chluIpfs.instance.crypto.generateKeyPair()
+            this.logger.debug(`pinning key pair ${vmPubKeyMultihash}`)
             await this.chluIpfs.pin(vmPubKeyMultihash)
             // TODO: request pin?
-            const signature = await this.chluIpfs.instance.did.signMultihash(vmPubKeyMultihash);
+            this.logger.debug(`signing key pair ${vmPubKeyMultihash}`)
+            const signature = await this.chluIpfs.didIpfsHelper.signMultihash(vmPubKeyMultihash);
+            this.logger.debug(`exporting key pair ${vmPubKeyMultihash}`)
             const exported = await this.chluIpfs.instance.crypto.exportKeyPair(vmKeyPair)
+            this.logger.debug(`creating vendor in DB ${vDidId}`)
             const vendor = await this.db.createVendor(id, {
                 vmPrivateKey: exported,
                 vmPubKeyMultihash,
@@ -235,6 +243,7 @@ class Marketplace {
                 vmPubKeyMultihash: vendor.vmPubKeyMultihash,
                 mSignature: vendor.mSignature 
             };
+            this.logger.debug(`Vendor ${vDidId} created, sending response ${response}`)
             return response;
         } catch (error) {
             if (error instanceof HttpError) throw error;
@@ -279,7 +288,7 @@ class Marketplace {
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
             // wait until the DID gets replicated into the marketplace, don't fail if not found
-            const valid = await this.chluIpfs.instance.did.verifyMultihash(id, PvmMultihash, signature, true);
+            const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, PvmMultihash, signature, true);
             if (valid) {
                 vendor.vSignature = signatureValue;
                 await this.db.updateVendor(id, vendor);
@@ -334,7 +343,7 @@ class Marketplace {
                 },
                 marketplace_signature: {
                     type: 'did:chlu',
-                    creator: this.chluIpfs.instance.did.didId,
+                    creator: this.chluIpfs.didIpfsHelper.didId,
                     signatureValue: vendor.mSignature
                 },
                 vendor_encryption_key_location: '', // TODO: support this
@@ -343,9 +352,9 @@ class Marketplace {
                 signature: ''
             };
             const keyPair = await this.getVMKeyPair(vendorId);
-            const popr = await this.chluIpfs.instance.crypto.signPoPR(data, keyPair);
-            const encoded = await this.chluIpfs.instance.protobuf.PoPR.encode(popr)
-            const multihash = await this.chluIpfs.instance.ipfsUtils.put(encoded); 
+            const popr = await this.chluIpfs.crypto.signPoPR(data, keyPair);
+            const encoded = await this.chluIpfs.protobuf.PoPR.encode(popr)
+            const multihash = await this.chluIpfs.ipfsUtils.put(encoded); 
             return { popr, multihash };
         } catch (error) {
             if (error instanceof HttpError) throw error;

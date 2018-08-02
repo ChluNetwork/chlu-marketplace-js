@@ -13,8 +13,13 @@ async function serve(port = 3000, configurationFile = null) {
     app.use(cors());
     app.use(mktApp);
     if (configurationFile) {
-        const data = await readFile(configurationFile);
-        const conf = JSON.parse(data.toString('utf-8'));
+        let conf = {}
+        if (typeof configurationFile === 'string') {
+            const data = await readFile(configurationFile);
+            conf = JSON.parse(data.toString('utf-8'));
+        } else if (configurationFile) {
+            conf = configurationFile
+        }
         mktApp.locals.mkt = new Marketplace(conf);
         if (conf.port) p = conf.port;
     }
