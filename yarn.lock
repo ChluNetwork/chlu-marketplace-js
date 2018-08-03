@@ -1460,11 +1460,12 @@ bs58@=2.0.0:
   resolved "https://registry.yarnpkg.com/bs58/-/bs58-2.0.0.tgz#72b713bed223a0ac518bbda0e3ce3f4817f39eb5"
 
 bs58check@<3.0.0, bs58check@^2.0.0:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/bs58check/-/bs58check-2.1.1.tgz#8a5d0e587af97b784bf9cbf1b29f454d82bc0222"
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/bs58check/-/bs58check-2.1.2.tgz#53b018291228d82a5aa08e7d796fdafda54aebfc"
   dependencies:
     bs58 "^4.0.0"
     create-hash "^1.1.0"
+    safe-buffer "^5.1.2"
 
 bser@^2.0.0:
   version "2.0.0"
@@ -1500,8 +1501,8 @@ buffer-fill@^1.0.0:
   resolved "https://registry.yarnpkg.com/buffer-fill/-/buffer-fill-1.0.0.tgz#f8f78b76789888ef39f205cd637f68e702122b2c"
 
 buffer-from@^1.0.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-1.1.0.tgz#87fcaa3a298358e0ade6e442cfce840740d1ad04"
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/buffer-from/-/buffer-from-1.1.1.tgz#32713bc028f75c02fdb710d7c7bcec1f2c6070ef"
 
 buffer-indexof@~0.0.0:
   version "0.0.2"
@@ -1721,9 +1722,9 @@ chlu-did@ChluNetwork/chlu-did:
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
 
-chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#protobuf-upgrade:
+chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#misc-features:
   version "0.2.0"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/d17eb5982bb272ef96aa324ae2f477607655e128"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/f55dbbffedef08ad835f9207e88062c494a0b99b"
   dependencies:
     axios "^0.18.0"
     blockcypher ChluNetwork/node-client
@@ -1735,7 +1736,6 @@ chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#protobuf-upgrade:
     elliptic "^6.4.0"
     ipfs "~0.28.2"
     ipfs-api "^20.0.0"
-    libp2p-websocket-star-rendezvous "^0.2.3"
     lodash "^4.17.5"
     lru-cache "^4.1.2"
     moment "^2.22.2"
@@ -2502,10 +2502,11 @@ duplexify@^3.5.3:
     stream-shift "^1.0.0"
 
 ecc-jsbn@~0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/ecc-jsbn/-/ecc-jsbn-0.1.1.tgz#0fc73a9ed5f0d53c38193398523ef7e543777505"
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/ecc-jsbn/-/ecc-jsbn-0.1.2.tgz#3a83a904e54353287874c564b7549386849a98c9"
   dependencies:
     jsbn "~0.1.0"
+    safer-buffer "^2.1.0"
 
 ecurve@^1.0.0:
   version "1.0.6"
@@ -2767,8 +2768,8 @@ ethereumjs-block@^1.7.1:
     merkle-patricia-tree "^2.1.2"
 
 ethereumjs-tx@^1.2.2, ethereumjs-tx@^1.3.3:
-  version "1.3.6"
-  resolved "https://registry.yarnpkg.com/ethereumjs-tx/-/ethereumjs-tx-1.3.6.tgz#d581c1703b7b250b2e54892031626534d53e0a79"
+  version "1.3.7"
+  resolved "https://registry.yarnpkg.com/ethereumjs-tx/-/ethereumjs-tx-1.3.7.tgz#88323a2d875b10549b8347e09f4862b546f3d89a"
   dependencies:
     ethereum-common "^0.0.18"
     ethereumjs-util "^5.0.0"
@@ -2904,7 +2905,11 @@ extend-shallow@^3.0.0, extend-shallow@^3.0.2:
     assign-symbols "^1.0.0"
     is-extendable "^1.0.1"
 
-extend@^3.0.0, extend@~3.0.0, extend@~3.0.1:
+extend@^3.0.0, extend@~3.0.1:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/extend/-/extend-3.0.2.tgz#f8b1136b4071fbd8eb140aff858b1019ec2915fa"
+
+extend@~3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/extend/-/extend-3.0.1.tgz#a755ea7bc1adfcc5a31ce7e762dbaadc5e636444"
 
@@ -3309,8 +3314,8 @@ git-url-parse@^8.0.0:
     git-up "^2.0.0"
 
 git-validate@^2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/git-validate/-/git-validate-2.2.2.tgz#9cc8ff001177957a11726ab508d415bb80b18bcf"
+  version "2.2.4"
+  resolved "https://registry.yarnpkg.com/git-validate/-/git-validate-2.2.4.tgz#0adc02a2887f09ffe077db38932ba8a3de508cbe"
 
 github-from-package@0.0.0:
   version "0.0.0"
@@ -4186,8 +4191,8 @@ ipld-dag-pb@~0.13.0, ipld-dag-pb@~0.13.1:
     stable "^0.1.6"
 
 ipld-dag-pb@~0.14.4:
-  version "0.14.5"
-  resolved "https://registry.yarnpkg.com/ipld-dag-pb/-/ipld-dag-pb-0.14.5.tgz#bec6417401b32a80818190636a08edc0048dccec"
+  version "0.14.6"
+  resolved "https://registry.yarnpkg.com/ipld-dag-pb/-/ipld-dag-pb-0.14.6.tgz#1b0357c7db8c1a75f8eef6e89505ddc614a7faaa"
   dependencies:
     async "^2.6.1"
     bs58 "^4.0.1"
@@ -5005,8 +5010,8 @@ joi@^11.1.0:
     topo "2.x.x"
 
 joi@^13.1.2:
-  version "13.4.0"
-  resolved "https://registry.yarnpkg.com/joi/-/joi-13.4.0.tgz#afc359ee3d8bc5f9b9ba6cdc31b46d44af14cecc"
+  version "13.5.2"
+  resolved "https://registry.yarnpkg.com/joi/-/joi-13.5.2.tgz#32207c85fa76d889f1e971c7eaaf69b232259a91"
   dependencies:
     hoek "5.x.x"
     isemail "3.x.x"
@@ -5816,8 +5821,8 @@ lodash@^4.17.10, lodash@^4.17.4, lodash@^4.17.5:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
 
 logplease@^1.2.14, logplease@~1.2.14:
-  version "1.2.14"
-  resolved "https://registry.yarnpkg.com/logplease/-/logplease-1.2.14.tgz#e509dd4c455c1aed7dd105a17694daa5b9ac579f"
+  version "1.2.15"
+  resolved "https://registry.yarnpkg.com/logplease/-/logplease-1.2.15.tgz#3da442e93751a5992cc19010a826b08d0293c48a"
 
 lolex@^2.2.0, lolex@^2.3.2:
   version "2.3.2"
@@ -6442,8 +6447,8 @@ nise@^1.2.0:
     text-encoding "^0.6.4"
 
 nock@^9.0.18:
-  version "9.4.2"
-  resolved "https://registry.yarnpkg.com/nock/-/nock-9.4.2.tgz#bab58a44b5781bdb74d7808673a2dbeefafb898d"
+  version "9.4.4"
+  resolved "https://registry.yarnpkg.com/nock/-/nock-9.4.4.tgz#d58a6d54ca26735d792aa776801cd0623789bdb6"
   dependencies:
     chai "^4.1.2"
     debug "^3.1.0"
@@ -6559,8 +6564,8 @@ npm-bundled@^1.0.1:
   resolved "https://registry.yarnpkg.com/npm-bundled/-/npm-bundled-1.0.3.tgz#7e71703d973af3370a9591bafe3a63aca0be2308"
 
 npm-packlist@^1.1.6:
-  version "1.1.10"
-  resolved "https://registry.yarnpkg.com/npm-packlist/-/npm-packlist-1.1.10.tgz#1039db9e985727e464df066f4cf0ab6ef85c398a"
+  version "1.1.11"
+  resolved "https://registry.yarnpkg.com/npm-packlist/-/npm-packlist-1.1.11.tgz#84e8c683cbe7867d34b1d357d893ce29e28a02de"
   dependencies:
     ignore-walk "^3.0.1"
     npm-bundled "^1.0.1"
@@ -6734,7 +6739,7 @@ options@>=0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/options/-/options-0.0.6.tgz#ec22d312806bb53e731773e7cdaefcf1c643128f"
 
-orbit-db-cache@~0.2.2:
+orbit-db-cache@~0.2.4:
   version "0.2.4"
   resolved "https://registry.yarnpkg.com/orbit-db-cache/-/orbit-db-cache-0.2.4.tgz#0c4defe2b581dce4dd3f1cd7d4e06087fae52e19"
   dependencies:
@@ -6750,7 +6755,7 @@ orbit-db-counterstore@~1.4.0:
     crdts "~0.1.2"
     orbit-db-store "~2.5.0"
 
-orbit-db-docstore@~1.4.1:
+orbit-db-docstore@~1.4.3:
   version "1.4.3"
   resolved "https://registry.yarnpkg.com/orbit-db-docstore/-/orbit-db-docstore-1.4.3.tgz#0e802ad0d23a70f65ccb7f612be00424722253c3"
   dependencies:
@@ -6783,7 +6788,7 @@ orbit-db-kvstore@~1.4.0:
   dependencies:
     orbit-db-store "~2.5.0"
 
-orbit-db-pubsub@~0.5.3:
+orbit-db-pubsub@~0.5.5:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/orbit-db-pubsub/-/orbit-db-pubsub-0.5.5.tgz#7d6d153b700e4b4396266a0ec354212717f28ee6"
   dependencies:
@@ -6791,9 +6796,9 @@ orbit-db-pubsub@~0.5.3:
     logplease "~1.2.14"
     p-series "^1.1.0"
 
-orbit-db-store@~2.5.0:
-  version "2.5.2"
-  resolved "https://registry.yarnpkg.com/orbit-db-store/-/orbit-db-store-2.5.2.tgz#c798426f2bc80b0e8433e171afb84c75d227c6fb"
+orbit-db-store@~2.5.0, orbit-db-store@~2.5.3:
+  version "2.5.3"
+  resolved "https://registry.yarnpkg.com/orbit-db-store/-/orbit-db-store-2.5.3.tgz#e13ad350a57faf153ae6621cdddecb5a6b3e528b"
   dependencies:
     ipfs-log "~4.1.0"
     logplease "^1.2.14"
@@ -6801,21 +6806,21 @@ orbit-db-store@~2.5.0:
     readable-stream "~2.3.5"
 
 orbit-db@~0.19.8:
-  version "0.19.8"
-  resolved "https://registry.yarnpkg.com/orbit-db/-/orbit-db-0.19.8.tgz#5d07c96c579d85ca96bacd7f3fdd02a576e0e8cc"
+  version "0.19.9"
+  resolved "https://registry.yarnpkg.com/orbit-db/-/orbit-db-0.19.9.tgz#839871d77d426244b2fc6a1ceb46a7585f061b1c"
   dependencies:
     ipfs-pubsub-1on1 "~0.0.4"
     logplease "^1.2.14"
     multihashes "^0.4.12"
-    orbit-db-cache "~0.2.2"
+    orbit-db-cache "~0.2.4"
     orbit-db-counterstore "~1.4.0"
-    orbit-db-docstore "~1.4.1"
+    orbit-db-docstore "~1.4.3"
     orbit-db-eventstore "~1.4.0"
     orbit-db-feedstore "~1.4.0"
     orbit-db-keystore "~0.1.0"
     orbit-db-kvstore "~1.4.0"
-    orbit-db-pubsub "~0.5.3"
-    orbit-db-store "~2.5.0"
+    orbit-db-pubsub "~0.5.5"
+    orbit-db-store "~2.5.3"
 
 ordered-read-streams@^1.0.0:
   version "1.0.1"
@@ -8088,7 +8093,7 @@ safe-regex@^1.1.0:
   dependencies:
     ret "~0.1.10"
 
-"safer-buffer@>= 2.1.2 < 3", safer-buffer@^2.0.2:
+"safer-buffer@>= 2.1.2 < 3", safer-buffer@^2.0.2, safer-buffer@^2.1.0:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/safer-buffer/-/safer-buffer-2.1.2.tgz#44fa161b0187b9549dd84bb91802f9bd8385cd6a"
 

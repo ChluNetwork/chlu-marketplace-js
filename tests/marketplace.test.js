@@ -23,44 +23,47 @@ describe('Marketplace (Unit)', () => {
             db: {
                 password: 'test',
                 storage: ':memory:'
-            }
+            },
+            logger: {
+                debug: () => {},
+                info: () => {},
+                warning: () => console.log(...arguments),
+                error: () => console.log(...arguments),
+            },
         });
-        sinon.spy(mkt.db, 'start');
-        sinon.spy(mkt.db, 'stop');
         mkt.chluIpfs = {
             start: sinon.stub().resolves(),
             stop: sinon.stub().resolves(),
             pin: sinon.stub().resolves(),
-            instance: {
-                protobuf: {
-                    PoPR: {
-                        encode: sinon.stub().resolves(Buffer.from('fake encoded popr'))
-                    }
-                },
-                ipfsUtils: {
-                    id: sinon.stub().resolves('fakeIPFSid'),
-                    put: sinon.stub().resolves(await toMultihash('fakemultihash'))
-                },
-                did: {
-                    publish: sinon.stub().resolves(),
-                    signMultihash: sinon.stub().resolves(fakesignature),
-                    verifyMultihash: sinon.stub().resolves(true),
-                },
-                crypto: {
-                    generateKeyPair: sinon.stub().resolves({ keyPair: 'keyPair', pubKeyMultihash: fakemultihash}),
-                    exportKeyPair: sinon.stub().callsFake(async k => 'exported' + k),
-                    importKeyPair: sinon.stub().callsFake(async k => k.slice('exported'.length)),
-                    storePublicKey: sinon.stub().resolves(fakemultihash),
-                    signMultihash: sinon.stub().resolves(fakesignature),
-                    verifyMultihash: sinon.stub().resolves(true),
-                    signPoPR: sinon.stub().callsFake(async popr => {
-                        return Object.assign(popr, {
-                            signature: fakesignature
-                        });
-                    })
+            protobuf: {
+                PoPR: {
+                    encode: sinon.stub().resolves(Buffer.from('fake encoded popr'))
                 }
+            },
+            ipfsUtils: {
+                id: sinon.stub().resolves('fakeIPFSid'),
+                put: sinon.stub().resolves(await toMultihash('fakemultihash'))
+            },
+            didIpfsHelper: {
+                signMultihash: sinon.stub().resolves(fakesignature),
+                verifyMultihash: sinon.stub().resolves(true),
+            },
+            crypto: {
+                generateKeyPair: sinon.stub().resolves({ keyPair: 'keyPair', pubKeyMultihash: fakemultihash}),
+                exportKeyPair: sinon.stub().callsFake(async k => 'exported' + k),
+                importKeyPair: sinon.stub().callsFake(async k => k.slice('exported'.length)),
+                storePublicKey: sinon.stub().resolves(fakemultihash),
+                signMultihash: sinon.stub().resolves(fakesignature),
+                verifyMultihash: sinon.stub().resolves(true),
+                signPoPR: sinon.stub().callsFake(async popr => {
+                    return Object.assign(popr, {
+                        signature: fakesignature
+                    });
+                })
             }
         };
+        sinon.spy(mkt.db, 'start');
+        sinon.spy(mkt.db, 'stop');
     });
 
     it('starts correctly', done => {
@@ -95,7 +98,7 @@ describe('Marketplace (Unit)', () => {
         const response = await mkt.registerVendor(fakevendordidid);
         expect(response.vDidId).to.equal(fakevendordidid);
         // Calls
-        expect(mkt.chluIpfs.instance.did.signMultihash.called).to.be.true;
+        expect(mkt.chluIpfs.didIpfsHelper.signMultihash.called).to.be.true;
         expect(mkt.chluIpfs.pin.calledWith(fakemultihash)).to.be.true;
         // State
         const vendor = await mkt.db.getVendor(response.vDidId);
@@ -120,7 +123,7 @@ describe('Marketplace (Unit)', () => {
     it('can submit a vendor signature', async () => {
         const vendorData = await mkt.registerVendor(fakevendordidid);
         await mkt.updateVendorSignature(fakesignature);
-        expect(mkt.chluIpfs.instance.did.verifyMultihash.calledWith(
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             fakevendordidid,
             vendorData.vmPubKeyMultihash,
             fakesignature
@@ -152,10 +155,10 @@ describe('Marketplace (Unit)', () => {
         const v = await mkt.registerVendor(fakevendordidid);
         const { popr, multihash } = await mkt.createPoPR(fakevendordidid);
         // Calls
-        expect(mkt.chluIpfs.instance.crypto.signPoPR.called).to.be.true;
-        expect(mkt.chluIpfs.instance.protobuf.PoPR.encode.calledWith(popr)).to.be.true
-        const binary = await mkt.chluIpfs.instance.protobuf.PoPR.encode.returnValues[0] // unwrap promise
-        expect(mkt.chluIpfs.instance.ipfsUtils.put.args[0][0]).to.deep.equal(binary)
+        expect(mkt.chluIpfs.crypto.signPoPR.called).to.be.true;
+        expect(mkt.chluIpfs.protobuf.PoPR.encode.calledWith(popr)).to.be.true
+        const binary = await mkt.chluIpfs.protobuf.PoPR.encode.returnValues[0] // unwrap promise
+        expect(mkt.chluIpfs.ipfsUtils.put.args[0][0]).to.deep.equal(binary)
         // Multihash
         expect(multihash).to.equal(await toMultihash('fakemultihash'))
         // Schema
