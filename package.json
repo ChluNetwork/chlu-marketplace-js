@@ -1,5 +1,6 @@
 {
   "name": "chlu-marketplace-js",
+  "description": "Chlu Marketplace library and server application",
   "version": "0.1.0",
   "main": "src/index.js",
   "engines": {
@@ -8,6 +9,15 @@
   },
   "repository": "https://github.com/ChluNetwork/chlu-marketplace-js.git",
   "license": "MIT",
+  "author": {
+    "name": "Chlu",
+    "email": "info@chlu.io",
+    "url": "https://chlu.io"
+  },
+  "bugs": {
+    "url": "https://github.com/ChluNetwork/chlu-marketplace-js/issues"
+  },
+  "homepage": "https://github.com/ChluNetwork/chlu-marketplace-js/blob/master/README.md",
   "bin": {
     "chlu-marketplace": "src/bin/index.js"
   },
@@ -26,7 +36,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#misc-features",
+    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#semver:~0.1.0",
     "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
@@ -42,7 +52,7 @@
     "chai": "^4.1.2",
     "documentation": "^6.1.0",
     "eslint": "^4.18.1",
-    "libp2p-websocket-star-rendezvous": "^0.2.3",
+    "libp2p-websocket-star-rendezvous": "~0.2.3",
     "lodash": "^4.17.10",
     "mocha": "^5.0.1",
     "multihashing-async": "^0.4.8",
