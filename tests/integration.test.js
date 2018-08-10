@@ -7,6 +7,7 @@ const path = require('path');
 const tmpDir = path.join(require('os').tmpdir(), 'chlu-marketplace-tests');
 const ChluDID = require('chlu-did/src')
 const ChluSQLIndex = require('chlu-ipfs-support/src/modules/orbitdb/indexes/sql')
+const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
 
 describe('Marketplace (Integration)', () => {
     let mkt, DID;
@@ -121,6 +122,24 @@ describe('Marketplace (Integration)', () => {
         expect(vendor.vDidId).to.equal(v.publicDidDocument.id);
         expect(vendor.vSignature).to.equal(signature.signatureValue);
     });
+
+    it('can update the profile data', async () => {
+        const v = await getRandomVendor();
+        await mkt.registerVendor(v.publicDidDocument.id)
+        const profile = {
+            name: 'Developer'
+        }
+        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+        const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
+        await mkt.updateVendorProfile(profile, signature)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            v.publicDidDocument.id,
+            multihash,
+            signature
+        )).to.be.true;
+        const vendorData = await mkt.getVendor(v.publicDidDocument.id)
+        expect(vendorData.profile).to.deep.equal(profile)
+    })
 
     it('can list vendors', async () => {
         const v = await getRandomVendor();

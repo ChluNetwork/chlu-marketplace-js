@@ -48,6 +48,9 @@ class DB {
                     type: Sequelize.STRING,
                     unique: true
                 },
+                profile: {
+                    type: Sequelize.JSONB
+                }
             });
             await this.db.sync();
         }
@@ -77,7 +80,8 @@ class DB {
                 vDidId: v.vDidId,
                 vSignature: v.vSignature,
                 vmPubKeyMultihash: v.vmPubKeyMultihash,
-                vmPrivateKey: v.vmPrivateKey
+                vmPrivateKey: v.vmPrivateKey,
+                profile: v.profile || {}
             };
         }
         return null;
