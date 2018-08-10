@@ -18,56 +18,14 @@ Here are some generated HTML docs for the library. [Documentation](https://ipfs.
 
 ### Starting the HTTP Server
 
-#### Configuration file
-
-The HTTP server can be started with a configuration file
-in JSON, the content will be passed to the Marketplace constructor
-and the `port` option will be used for the HTTP server.
-
-The most basic configuration file is like this:
-
-```json
-{
-  "port": 3000,
-  "db": {
-    "password": "yourpassword"
-  },
-  "marketplaceLocation": "http://localhost:3000"
-}
-```
-
-Check out the documentation above to see which other options you can pass.
-
-You can also pass `chlu-ipfs` specific options in the `chluIpfs` object.
-
 __Note:__ if you are running other Chlu apps, make sure they are set to the same network.
 
 - clone this repository
-- `yarn start -c path/to/your/config.json`
+- `yarn start`
 - your Marketplace is now running
-  - all data is saved in `~/.chlu` by default
+  - all data is saved in `~/.chlu-marketplace` by default
   - also check out `yarn start --help` to see additional options
-
-### Using the HTTP API in an Express app
-
-```javascript
-const mktServer = require('chlu-marketplace-js/src/server')
-
-const express = require('express')
-const app = express()
-
-// 'app' is your existing express application
-
-app.use('/chlu', mktServer)
-
-app.listen(3000, () => {
-    // Done! Your marketplace is mounted at /chlu
-})
-
-// The required submodules will be started when the first request
-// arrives. If you want to start them right away (recommended) run:
-app.locals.mkt.start() // returns a Promise, make sure to catch errors!
-```
+  - if you need to access your marketplace from the internet then `--marketplace-location` is mandatory
 
 ### Using the library directly
 
@@ -92,6 +50,32 @@ await mkt.start()
 // Use it
 await mkt.registerVendor(...)
 await mkt.createPoPR(...)
+```
+
+### Using the HTTP API in an Express app
+
+```javascript
+const mktServer = require('chlu-marketplace-js/src/server')
+const Marketplace = require('chlu-marketplace-js')
+
+const express = require('express')
+const app = express()
+
+// 'app' is your existing express application
+
+app.use('/chlu', mktServer)
+
+app.listen(3000, () => {
+    // Done! Your marketplace is mounted at /chlu
+})
+
+// If you need custom Marketplace configuration, replace the marketplace instance:
+
+app.locals.mkt = new Marketplace({ ...options })
+
+// The required submodules will be started when the first request
+// arrives. If you want to start them right away (recommended) run:
+await app.locals.mkt.start() // returns a Promise, make sure to catch errors!
 ```
 
 ### Quickly setup a vendor

@@ -5,6 +5,7 @@ const cli = require('commander');
 const serve = require('./serve');
 const vendorSetup = require('./vendorSetup');
 const package = require('../../package.json');
+const ChluSQLIndex = require('chlu-ipfs-support/src/modules/orbitdb/indexes/sql')
 
 let server = null
 
@@ -23,12 +24,50 @@ cli
     .version(package.version);
 
 cli
-    .command('serve')
+    .command('start')
     .description('start the Marketplace server')
     .option('-p, --port <n>', 'port to listen on', parseInt, 3000)
-    .option('-c, --configuration-file <s>', 'configuration file to use')
+    .option('-n, --network <s>', 'Chlu network to use')
+    .option('--marketplace-location <s>', 'URL used to access this app from the internet, defaults to localhost:port')
+    .option('--directory <s>', 'where to store Chlu and Marketplace data, defaults to ~/.chlu-marketplace')
+    .option('--postgres', 'use postgres database instead of SQLite for the Marketplace')
+    .option('--database-host <s>')
+    .option('--database-name <s>', 'name of database to use or path to SQLite file for the Marketplace')
+    .option('--database-user <s>')
+    .option('--database-password <s>')
+    .option('--chlu-postgres', 'use postgres database instead of SQLite for Chlu')
+    .option('--chlu-database-host <s>')
+    .option('--chlu-database-name <s>', 'name of database to use or path to SQLite file for Chlu')
+    .option('--chlu-database-user <s>')
+    .option('--chlu-database-password <s>')
     .action(handleErrors(async cmd => {
-        server = await serve(cmd.port, cmd.configurationFile);
+        const config = {
+            port: cmd.port,
+            marketplaceLocation: cmd.marketplaceLocation,
+            chluIpfs: {
+                network: cmd.network,
+                OrbitDBIndex: ChluSQLIndex,
+                OrbitDBIndexOptions: {
+                    dialect: cmd.chluPostgres ? 'postgres' : 'sqlite',
+                    host: cmd.chluDatabaseHost,
+                    port: cmd.chluDatabasePort,
+                    storage: cmd.chluPostgres ? null : cmd.chluDatabaseName,
+                    database: cmd.chluPostgres ? cmd.chluDatabaseName : null,
+                    username: cmd.chluDatabaseUser,
+                    password: cmd.chluDatabasePassword,
+                }
+            },
+            db: {
+                dialect: cmd.postgres ? 'postgres' : 'sqlite',
+                host: cmd.databaseHost,
+                port: cmd.databasePort,
+                storage: cmd.postgres ? null : cmd.chluDatabaseName,
+                database: cmd.postgres ? cmd.chluDatabaseName : null,
+                username: cmd.databaseUser,
+                password: cmd.databasePassword,
+            }
+        }
+        server = await serve(cmd.port, config);
     }));
 
 cli

@@ -2,11 +2,10 @@ const Sequelize = require('sequelize');
 const path = require('path');
 const { ensureDir } = require('./utils/fs');
 
-const defaultDBPath = path.join(process.env.HOME, '.chlu', 'marketplace', 'db.sqlite');
 class DB {
 
     constructor(options = {}) {
-        this.storage = options.storage || defaultDBPath;
+        this.storage = options.storage || ':memory:';
         this.dialect = options.dialect || 'sqlite';
         this.username = options.username || 'username';
         this.password = options.password;
@@ -17,9 +16,6 @@ class DB {
     
     async start() {
         if(!this.db) {
-            if (!this.password) {
-                throw new Error('Password is required');
-            }
             if (!this.storage !== ':memory:') {
                 await ensureDir(path.dirname(this.storage));
             }
