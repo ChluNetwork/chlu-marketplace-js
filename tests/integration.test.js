@@ -5,9 +5,8 @@ const Marketplace = require('../src');
 const rimraf = require('rimraf');
 const path = require('path');
 const tmpDir = path.join(require('os').tmpdir(), 'chlu-marketplace-tests');
-const keyFile = path.join(tmpDir, 'chlu-marketplace-key.txt');
-const dbFile = path.join(tmpDir, 'db.sqlite');
 const ChluDID = require('chlu-did/src')
+const ChluSQLIndex = require('chlu-ipfs-support/src/modules/orbitdb/indexes/sql')
 
 describe('Marketplace (Integration)', () => {
     let mkt, DID;
@@ -21,11 +20,6 @@ describe('Marketplace (Integration)', () => {
     before(async () => {
         DID = new ChluDID()
         mkt = new Marketplace({
-            rootKeyPairPath: keyFile,
-            db: {
-                storage: dbFile,
-                password: 'test'
-            },
             chluIpfs: {
                 network: 'test', // so that it doesn't talk to other nodes
                 logger: {
@@ -42,7 +36,8 @@ describe('Marketplace (Integration)', () => {
                             Swarm: []
                         }
                     }
-                }
+                },
+                OrbitDBIndex: ChluSQLIndex // Use the SQL Index
             },
             logger: {
                 debug: () => {},
@@ -177,7 +172,8 @@ describe('Marketplace (Integration)', () => {
             expect(url).to.equal(popr.marketplace_url);
             return await mkt.getDIDID();
         });
-        const valid = await mkt.chluIpfs.validator.validatePoPRSignaturesAndKeys(popr);
+        const resolvedPoPR = await mkt.chluIpfs.reviewRecords.resolvePoPR(popr)
+        const valid = await mkt.chluIpfs.validator.validatePoPRSignaturesAndKeys(resolvedPoPR);
         expect(valid).to.be.true;
         // Check storage on IPFS
         const buffer = await mkt.chluIpfs.ipfsUtils.get(multihash)

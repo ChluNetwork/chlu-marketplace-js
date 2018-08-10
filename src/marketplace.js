@@ -5,6 +5,7 @@ const DB = require('./db');
 const path = require('path');
 const moment = require('moment')
 const HttpError = require('./utils/error');
+const { get, set } = require('lodash')
 
 /**
  * Chlu Marketplace provides the required methods for
@@ -43,14 +44,17 @@ class Marketplace {
         const opt = options.chluIpfs || {};
         this.chluIpfs = new ChluIPFS(Object.assign({
             // Don't use ~/.chlu to not conflict with the service node
-            directory: path.join(process.env.HOME, '.chlu/marketplace'),
+            directory: path.join(process.env.HOME, '.chlu-marketplace'),
             logger: options.logger
         }, opt));
         if (options.ipfs) this.chluIpfs.ipfs = options.ipfs
         this.logger = options.logger || this.chluIpfs.logger || Logger
+        if (!get(options, 'db.storage')){
+            set(options, 'db.storage', path.join(this.chluIpfs.directory, 'marketplace.sqlite'))
+        }
         this.db = new DB(options.db);
         // TODO: docs for this option
-        this.marketplaceLocation = options.marketplaceLocation || 'http://localhost';
+        this.marketplaceLocation = options.marketplaceLocation || `http://localhost:${options.port}`;
     }
 
     /**

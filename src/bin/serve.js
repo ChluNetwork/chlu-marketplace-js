@@ -7,10 +7,8 @@ const mktApp = require('../server');
 const Marketplace = require('../');
 
 async function serve(port = 3000, configurationFile = null) {
-    let p = port;
+    let p = port, verbose = true;
     const app = express();
-    app.use(morgan('combined'));
-    app.use(cors());
     app.use(mktApp);
     if (configurationFile) {
         let conf = {}
@@ -20,9 +18,12 @@ async function serve(port = 3000, configurationFile = null) {
         } else if (configurationFile) {
             conf = configurationFile
         }
+        if (conf.port) p = conf.port; else conf.port = p
+        if (conf.verbose === false) verbose = false
         mktApp.locals.mkt = new Marketplace(conf);
-        if (conf.port) p = conf.port;
     }
+    if (verbose) app.use(morgan('combined'));
+    app.use(cors());
     await mktApp.locals.mkt.start();
     await new Promise(resolve => {
         app.listen(p, () => {
