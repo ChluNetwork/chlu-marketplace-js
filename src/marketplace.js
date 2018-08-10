@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
+const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
 const Logger = require('chlu-ipfs-support/src/utils/logger')
 const DB = require('./db');
 const path = require('path');
@@ -182,7 +183,8 @@ class Marketplace {
                     mSignature: v.mSignature,
                     vDidId: v.vDidId,
                     vSignature: v.vSignature,
-                    vmPubKeyMultihash: v.vmPubKeyMultihash
+                    vmPubKeyMultihash: v.vmPubKeyMultihash,
+                    profile: v.profile || {}
                 };
             } else {
                 throw new HttpError(404, 'Vendor not found');
@@ -276,7 +278,6 @@ class Marketplace {
     /**
      * Create/Update the vendor signature for a vendor-marketplace key
      * 
-     * @param {string} vDidId the vendor's DID ID
      * @param {Object} signature
      * @param {string} signature.creator the did id used to sign
      * @param {string} signature.signatureValue the hex encoded signature as a string
@@ -295,13 +296,35 @@ class Marketplace {
             const PvmMultihash = vendor.vmPubKeyMultihash;
             // wait until the DID gets replicated into the marketplace, don't fail if not found
             const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, PvmMultihash, signature, true);
+            let found = false
             if (valid) {
                 vendor.vSignature = signatureValue;
-                await this.db.updateVendor(id, vendor);
+                found = await this.db.updateVendor(id, vendor);
             } else {
                 throw new HttpError(400, 'Signature is not valid');
             }
+            if (!found) throw new HttpError(404, 'Vendor not found')
         } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'An error has occurred: ' + error.message);
+        }
+    }
+
+    async updateVendorProfile(profile, signature) {
+        const id = signature.creator
+        validateDidId(id);
+        await this.start()
+        try {
+            const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+            const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, multihash, signature, true);
+            let found = false
+            if (valid) {
+                found = await this.db.updateVendor(id, { profile })
+            } else {
+                throw new HttpError(400, 'Signature is not valid')
+            }
+            if (!found) throw new HttpError(404, 'Vendor not found')
+        } catch (error){
             if (error instanceof HttpError) throw error;
             throw new HttpError(500, 'An error has occurred: ' + error.message);
         }

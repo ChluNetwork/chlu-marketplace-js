@@ -1,5 +1,6 @@
 const express = require('express');
 const Marketplace = require('./marketplace');
+const { get } = require('lodash')
 
 const app = express();
 app.locals.mkt = new Marketplace();
@@ -14,6 +15,15 @@ app.post('/vendors', async (req, res) => {
     const didId = req.body.didId;
     await respond(res, app.locals.mkt.registerVendor(didId)); 
 });
+app.post('/vendors/:id/profile', async (req, res) => {
+    const profile = get(req, 'body.profile')
+    const signature = get(req, 'body.signature')
+    if (get(signature, 'creator') !== req.params.id) {
+        res.status(400).send('DID ID in the URI does not match signature creator')
+    } else {
+        await respond(res, app.locals.mkt.updateVendorProfile(profile, signature))
+    }
+})
 app.post('/vendors/:id/signature', async (req, res) => {
     const signature = req.body.signature;
     if (signature.creator !== req.params.id) {

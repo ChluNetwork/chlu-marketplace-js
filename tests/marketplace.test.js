@@ -6,6 +6,7 @@ const rimraf = require('rimraf');
 const path = require('path');
 const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 const { toMultihash } = require('./utils/ipfs');
+const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
 
 describe('Marketplace (Unit)', () => {
     let mkt, fakemultihash, fakevendordidid, fakesignature;
@@ -133,6 +134,22 @@ describe('Marketplace (Unit)', () => {
         expect(vendor.vSignature).to.equal(fakesignature.signatureValue);
     });
 
+    it('can update the profile data', async () => {
+        await mkt.registerVendor(fakevendordidid)
+        const profile = {
+            name: 'Developer'
+        }
+        await mkt.updateVendorProfile(profile, fakesignature)
+        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            fakevendordidid,
+            multihash,
+            fakesignature
+        )).to.be.true;
+        const vendorData = await mkt.getVendor(fakevendordidid)
+        expect(vendorData.profile).to.deep.equal(profile)
+    })
+
     it('can list vendors', async () => {
         await mkt.registerVendor(fakevendordidid);
         const vendors = await mkt.getVendorIDs();
@@ -147,7 +164,8 @@ describe('Marketplace (Unit)', () => {
             vmPubKeyMultihash: fakemultihash,
             vDidId: fakevendordidid,
             vSignature: null,
-            mSignature: fakesignature.signatureValue
+            mSignature: fakesignature.signatureValue,
+            profile: {}
         });
     });
 

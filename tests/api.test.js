@@ -14,6 +14,7 @@ describe('HTTP API', () => {
                 mSignature: 'fakesignature'
             }),
             updateVendorSignature: sinon.stub().resolves(),
+            updateVendorProfile: sinon.stub().resolves(),
             generatePoPR: sinon.stub().resolves(),
             getVendorIDs: sinon.stub().resolves([
                 'ven1', 'ven2'
@@ -79,6 +80,21 @@ describe('HTTP API', () => {
             .send({ signature })
             .expect(200);
         expect(mkt.updateVendorSignature.calledWith(signature))
+            .to.be.true;
+    });
+
+    it('POST /vendors/ven1/profile', async () => {
+        const signature = {
+            signatureValue: 'fakevendorsignature',
+            creator: 'ven1'
+        }
+        const profile = {
+            name: 'Developer'
+        }
+        await api.post('/vendors/ven1/profile')
+            .send({ signature, profile })
+            .expect(200);
+        expect(mkt.updateVendorProfile.calledWith(profile, signature))
             .to.be.true;
     });
 
