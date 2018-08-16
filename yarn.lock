@@ -1708,9 +1708,9 @@ check-error@^1.0.1:
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
 
-chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#orbitdb-validation:
-  version "0.1.1"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/53718cbbdbe3c01900811b0e931a2cd68a964f2b"
+"chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#semver:~0.2.0":
+  version "0.2.0"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/85b430f63f73c1aad0c71df7b66191739a8003cb"
   dependencies:
     axios "^0.18.0"
     blockcypher ChluNetwork/node-client

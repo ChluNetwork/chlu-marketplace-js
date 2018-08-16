@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#orbitdb-validation",
+    "chlu-ipfs-support": "ChluNetwork/chlu-ipfs-support#semver:~0.2.0",
     "commander": "^2.15.0",
     "cors": "^2.8.4",
     "express": "^4.16.2",
