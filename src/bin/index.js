@@ -12,7 +12,7 @@ let server = null
 function handleErrors(fn) {
     return function (...args) {
         fn(...args).catch(err => {
-            console.trace(err);
+            console.log(err);
             process.exit(1);
         });
     };
@@ -26,7 +26,7 @@ cli
 cli
     .command('start')
     .description('start the Marketplace server')
-    .option('-p, --port <n>', 'port to listen on', parseInt, 3000)
+    .option('-p, --port <n>', 'port to listen on')
     .option('-n, --network <s>', 'Chlu network to use')
     .option('--marketplace-location <s>', 'URL used to access this app from the internet, defaults to localhost:port')
     .option('--directory <s>', 'where to store Chlu and Marketplace data, defaults to ~/.chlu-marketplace')
@@ -42,8 +42,9 @@ cli
     .option('--chlu-database-user <s>')
     .option('--chlu-database-password <s>')
     .action(handleErrors(async cmd => {
+        const port = parseInt(cmd.port || 3000)
         const config = {
-            port: cmd.port,
+            port,
             marketplaceLocation: cmd.marketplaceLocation,
             chluIpfs: {
                 network: cmd.network,
@@ -53,7 +54,6 @@ cli
                     enableWrites: !cmd.chluNoWrite,
                     enableValidations: !cmd.chluNoWrite,
                     host: cmd.chluDatabaseHost,
-                    port: cmd.chluDatabasePort,
                     storage: cmd.chluPostgres ? null : cmd.chluDatabaseName,
                     database: cmd.chluPostgres ? cmd.chluDatabaseName : null,
                     username: cmd.chluDatabaseUser,
@@ -64,13 +64,13 @@ cli
                 dialect: cmd.postgres ? 'postgres' : 'sqlite',
                 host: cmd.databaseHost,
                 port: cmd.databasePort,
-                storage: cmd.postgres ? null : cmd.chluDatabaseName,
-                database: cmd.postgres ? cmd.chluDatabaseName : null,
+                storage: cmd.postgres ? null : cmd.databaseName,
+                database: cmd.postgres ? cmd.databaseName : null,
                 username: cmd.databaseUser,
                 password: cmd.databasePassword,
             }
         }
-        server = await serve(cmd.port, config);
+        server = await serve(port, config);
     }));
 
 cli
