@@ -22,7 +22,7 @@
     "chlu-marketplace": "src/bin/index.js"
   },
   "scripts": {
-    "start": "node src/bin/index.js serve",
+    "start": "node src/bin/index.js start",
     "test": "mocha --opts tests/mocha.opts",
     "test-watch": "mocha --opts tests/mocha.opts --watch",
     "test-coverage": "nyc mocha --opts tests/mocha.opts",
