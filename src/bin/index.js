@@ -38,6 +38,7 @@ cli
     .option('--chlu-postgres', 'use postgres database instead of SQLite for Chlu')
     .option('--chlu-no-write', 'disable writing to ChluDB. Only use this if you have a collector writing to the same DB')
     .option('--chlu-database-host <s>')
+    .option('--chlu-database-port <s>')
     .option('--chlu-database-name <s>', 'name of database to use or path to SQLite file for Chlu')
     .option('--chlu-database-user <s>')
     .option('--chlu-database-password <s>')
@@ -54,6 +55,7 @@ cli
                     enableWrites: !cmd.chluNoWrite,
                     enableValidations: !cmd.chluNoWrite,
                     host: cmd.chluDatabaseHost,
+                    port: cmd.chluDatabasePort,
                     storage: cmd.chluPostgres ? null : cmd.chluDatabaseName,
                     database: cmd.chluPostgres ? cmd.chluDatabaseName : null,
                     username: cmd.chluDatabaseUser,
