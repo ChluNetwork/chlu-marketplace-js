@@ -1,5 +1,13 @@
 # Chlu Marketplace Changelog
 
+## v0.2.2
+
+- fixed CORS not working
+
+## v0.2.1
+
+- fixed CLI options
+
 ## v0.2.0
 
 - added CLI params for Chlu SQL DB
