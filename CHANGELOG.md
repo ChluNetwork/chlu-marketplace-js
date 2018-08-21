@@ -1,5 +1,9 @@
 # Chlu Marketplace Changelog
 
+## v0.2.3
+
+- fixed `--chlu-no-write` CLI option
+
 ## v0.2.2
 
 - fixed CORS not working
