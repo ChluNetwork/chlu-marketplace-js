@@ -1,7 +1,7 @@
 {
   "name": "chlu-marketplace-js",
   "description": "Chlu Marketplace library and server application",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "main": "src/index.js",
   "engines": {
     "node": ">=8.0.0",
