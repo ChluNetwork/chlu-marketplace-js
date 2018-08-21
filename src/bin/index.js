@@ -52,8 +52,8 @@ cli
                 OrbitDBIndex: ChluSQLIndex,
                 OrbitDBIndexOptions: {
                     dialect: cmd.chluPostgres ? 'postgres' : 'sqlite',
-                    enableWrites: !cmd.chluNoWrite,
-                    enableValidations: !cmd.chluNoWrite,
+                    enableWrites: cmd.chluWrite,
+                    enableValidations: cmd.chluWrite,
                     host: cmd.chluDatabaseHost,
                     port: cmd.chluDatabasePort,
                     storage: cmd.chluPostgres ? null : cmd.chluDatabaseName,
