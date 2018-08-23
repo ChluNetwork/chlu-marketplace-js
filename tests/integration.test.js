@@ -108,13 +108,28 @@ describe('Marketplace (Integration)', () => {
         expect(valid).to.be.true;
     });
 
-    it('can submit a vendor signature', async () => {
+    it('can submit a vendor signature without the vendor did document', async () => {
         const v = await getRandomVendor();
         const vendorData = await mkt.registerVendor(v.publicDidDocument.id);
         const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(vendorData.vmPubKeyMultihash, v);
         await mkt.updateVendorSignature(signature);
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             v.publicDidDocument.id,
+            vendorData.vmPubKeyMultihash,
+            signature
+        )).to.be.true;
+        const vendor = await mkt.db.getVendor(vendorData.vDidId);
+        expect(vendor.vDidId).to.equal(v.publicDidDocument.id);
+        expect(vendor.vSignature).to.equal(signature.signatureValue);
+    });
+
+    it('can submit a vendor signature with the vendor did document', async () => {
+        const v = await getRandomVendor();
+        const vendorData = await mkt.registerVendor(v.publicDidDocument.id);
+        const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(vendorData.vmPubKeyMultihash, v);
+        await mkt.updateVendorSignature(signature, v.publicDidDocument);
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            v.publicDidDocument,
             vendorData.vmPubKeyMultihash,
             signature
         )).to.be.true;

@@ -281,11 +281,12 @@ class Marketplace {
      * @param {Object} signature
      * @param {string} signature.creator the did id used to sign
      * @param {string} signature.signatureValue the hex encoded signature as a string
+     * @param {Object} publicDidDocument the vendor did document can be optionally provided so that it doesn't have to be looked up
      * @returns {Promise}
      * @throws {Error} if the signature is not valid or the vendor does not exist
      * @memberof Marketplace
      */
-    async updateVendorSignature(signature) {
+    async updateVendorSignature(signature, publicDidDocument = null) {
         const id = signature.creator;
         const signatureValue = signature.signatureValue
         validateDidId(id);
@@ -294,8 +295,15 @@ class Marketplace {
             const vendor = await this.getVendor(id);
             // TODO: signature needs expiration date?
             const PvmMultihash = vendor.vmPubKeyMultihash;
-            // wait until the DID gets replicated into the marketplace, don't fail if not found
-            const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, PvmMultihash, signature, true);
+            let valid = false
+            if (get(publicDidDocument, 'id') === id) {
+                // Use the DID document provided
+                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(publicDidDocument, PvmMultihash, signature)
+            } else {
+                // just use the ID and fetch the DID from Chlu
+                // wait until the DID gets replicated into the marketplace, don't fail if not found
+                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, PvmMultihash, signature, true);
+            }
             let found = false
             if (valid) {
                 vendor.vSignature = signatureValue;
