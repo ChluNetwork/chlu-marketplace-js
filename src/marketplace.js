@@ -318,13 +318,21 @@ class Marketplace {
         }
     }
 
-    async updateVendorProfile(profile, signature) {
+    async updateVendorProfile(profile, signature, publicDidDocument = null) {
         const id = signature.creator
         validateDidId(id);
         await this.start()
         try {
             const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
-            const valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, multihash, signature, true);
+            let valid = false
+            if (get(publicDidDocument, 'id') === id) {
+                // Use the DID document provided
+                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(publicDidDocument, multihash, signature);
+            } else {
+                // just use the ID and fetch the DID from Chlu
+                // wait until the DID gets replicated into the marketplace, don't fail if not found
+                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, multihash, signature, true);
+            }
             let found = false
             if (valid) {
                 found = await this.db.updateVendor(id, { profile })
