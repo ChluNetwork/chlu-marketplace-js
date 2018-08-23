@@ -1,5 +1,9 @@
 # Chlu Marketplace Changelog
 
+## v0.2.5
+
+- apply same logic used in previous version to profile submissions
+
 ## v0.2.4
 
 - if the client sends the publicDidDocument when sending the vendor signature, use it to speed up signature verification
