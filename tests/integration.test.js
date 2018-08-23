@@ -138,7 +138,7 @@ describe('Marketplace (Integration)', () => {
         expect(vendor.vSignature).to.equal(signature.signatureValue);
     });
 
-    it('can update the profile data', async () => {
+    it('can update the profile data without the vendor did document', async () => {
         const v = await getRandomVendor();
         await mkt.registerVendor(v.publicDidDocument.id)
         const profile = {
@@ -149,6 +149,24 @@ describe('Marketplace (Integration)', () => {
         await mkt.updateVendorProfile(profile, signature)
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             v.publicDidDocument.id,
+            multihash,
+            signature
+        )).to.be.true;
+        const vendorData = await mkt.getVendor(v.publicDidDocument.id)
+        expect(vendorData.profile).to.deep.equal(profile)
+    })
+
+    it('can update the profile data with the vendor did document', async () => {
+        const v = await getRandomVendor();
+        await mkt.registerVendor(v.publicDidDocument.id)
+        const profile = {
+            name: 'Developer'
+        }
+        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+        const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
+        await mkt.updateVendorProfile(profile, signature, v.publicDidDocument)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            v.publicDidDocument,
             multihash,
             signature
         )).to.be.true;
