@@ -26,10 +26,11 @@ app.post('/vendors/:id/profile', async (req, res) => {
 })
 app.post('/vendors/:id/signature', async (req, res) => {
     const signature = req.body.signature;
+    const publicDidDocument = req.body.publicDidDocument
     if (signature.creator !== req.params.id) {
         res.status(400).send('DID ID in the URI does not match signature creator')
     } else {
-        await respond(res, app.locals.mkt.updateVendorSignature(signature)); 
+        await respond(res, app.locals.mkt.updateVendorSignature(signature, publicDidDocument)); 
     }
 });
 app.get('/vendors/:id', async (req, res) => {

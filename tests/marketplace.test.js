@@ -121,11 +121,25 @@ describe('Marketplace (Unit)', () => {
         expect(response).to.be.an('object');
     });
 
-    it('can submit a vendor signature', async () => {
+    it('can submit a vendor signature without passing the did document', async () => {
         const vendorData = await mkt.registerVendor(fakevendordidid);
         await mkt.updateVendorSignature(fakesignature);
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             fakevendordidid,
+            vendorData.vmPubKeyMultihash,
+            fakesignature
+        )).to.be.true;
+        const vendor = await mkt.db.getVendor(vendorData.vDidId);
+        expect(vendor.vDidId).to.equal(fakevendordidid);
+        expect(vendor.vSignature).to.equal(fakesignature.signatureValue);
+    });
+
+    it('can submit a vendor signature with the vendor did document', async () => {
+        const vendorData = await mkt.registerVendor(fakevendordidid);
+        const fakevendordid = { id: fakevendordidid }
+        await mkt.updateVendorSignature(fakesignature, fakevendordid);
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            fakevendordid,
             vendorData.vmPubKeyMultihash,
             fakesignature
         )).to.be.true;

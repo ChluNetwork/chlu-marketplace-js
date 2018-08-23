@@ -81,6 +81,14 @@ describe('HTTP API', () => {
             .expect(200);
         expect(mkt.updateVendorSignature.calledWith(signature))
             .to.be.true;
+        const publicDidDocument = {
+            id: 'ven1'
+        }
+        await api.post('/vendors/ven1/signature')
+            .send({ signature, publicDidDocument })
+            .expect(200);
+        expect(mkt.updateVendorSignature.calledWith(signature, publicDidDocument))
+            .to.be.true;
     });
 
     it('POST /vendors/ven1/profile', async () => {
