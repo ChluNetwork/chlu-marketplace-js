@@ -148,7 +148,7 @@ describe('Marketplace (Unit)', () => {
         expect(vendor.vSignature).to.equal(fakesignature.signatureValue);
     });
 
-    it('can update the profile data', async () => {
+    it('can update the profile data without passing the did document', async () => {
         await mkt.registerVendor(fakevendordidid)
         const profile = {
             name: 'Developer'
@@ -157,6 +157,23 @@ describe('Marketplace (Unit)', () => {
         const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             fakevendordidid,
+            multihash,
+            fakesignature
+        )).to.be.true;
+        const vendorData = await mkt.getVendor(fakevendordidid)
+        expect(vendorData.profile).to.deep.equal(profile)
+    })
+
+    it('can update the profile data with the vendor did document', async () => {
+        await mkt.registerVendor(fakevendordidid)
+        const fakevendordid = { id: fakevendordidid }
+        const profile = {
+            name: 'Developer'
+        }
+        await mkt.updateVendorProfile(profile, fakesignature, fakevendordid)
+        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
+            fakevendordid,
             multihash,
             fakesignature
         )).to.be.true;
