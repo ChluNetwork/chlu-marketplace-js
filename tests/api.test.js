@@ -19,6 +19,17 @@ describe('HTTP API', () => {
             getVendorIDs: sinon.stub().resolves([
                 'ven1', 'ven2'
             ]),
+            searchVendors: sinon.stub().resolves({
+                count: 2,
+                rows: [
+                    {
+                        vDidId: 'ven1'
+                    },
+                    {
+                        vDidId: 'ven2'
+                    }
+                ]
+            }),
             getVendor: sinon.stub().resolves({
                 vDidId: 'fakevendordidid',
                 marketplaceSignature: 'fakesignature',
@@ -41,6 +52,28 @@ describe('HTTP API', () => {
 
     it('GET /vendors', async () => {
         await api.get('/vendors').expect(['ven1', 'ven2']);
+    });
+
+    it('POST /search', async () => {
+        const body = { query: { test: 'a' }, limit: 10, offset: 2 }
+        await api.post('/search')
+            .send(body)
+            .expect({
+                count: 2,
+                rows: [
+                    {
+                        vDidId: 'ven1'
+                    },
+                    {
+                        vDidId: 'ven2'
+                    }
+                ]
+            });
+        expect(mkt.searchVendors.args[0]).to.deep.equal([
+            { test: 'a' },
+            10,
+            2
+        ])
     });
 
     it('GET /vendors/ven1', async () => {

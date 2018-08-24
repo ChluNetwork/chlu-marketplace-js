@@ -1,6 +1,7 @@
 const Sequelize = require('sequelize');
 const path = require('path');
 const { ensureDir } = require('./utils/fs');
+const { mapValues } = require('lodash')
 
 class DB {
 
@@ -116,6 +117,34 @@ class DB {
             return true;
         }
         return false;
+    }
+
+    async searchVendors(query, limit = 0, offset = 0) {
+        const mappedQuery = mapValues(query, (v, k) => {
+            const key = `profile.${k}`
+            if (typeof v === 'string') return { [key]: { [Sequelize.Op.like]: `%${v}%` } }
+            if (!isNaN(v)) return { [key]: v }
+            return null
+        })
+        const filteredQuery = Object.values(mappedQuery).filter(v => !!v)
+        const results = await this.Vendor.findAndCountAll({
+            attributes: [
+                'vDidId',
+                'vmPubKeyMultihash',
+                'mSignature',
+                'vSignature',
+                'profile',
+            ],
+            limit: limit || null,
+            offset,
+            where: {
+                [Sequelize.Op.and]: [ ...filteredQuery ]
+            }
+        })
+        return {
+            count: results.count,
+            rows: results.rows.map(r => r.toJSON())
+        }
     }
 }
 

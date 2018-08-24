@@ -232,4 +232,35 @@ describe('Marketplace (Integration)', () => {
         const decoded = await mkt.chluIpfs.protobuf.PoPR.decode(buffer)
         expect(decoded.created_at).to.equal(popr.created_at)
     });
+
+    it('can search vendors by data in their profile', async () => {
+        await mkt.start()
+        async function signupVendor(profile, submitSignature = true) {
+            const v = await getRandomVendor();
+            const vendorData = await mkt.registerVendor(v.publicDidDocument.id)
+            if (submitSignature) {
+                const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(vendorData.vmPubKeyMultihash, v);
+                await mkt.updateVendorSignature(signature);
+            }
+            const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+            const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
+            await mkt.updateVendorProfile(profile, signature)
+            return await mkt.getVendor(vendorData.vDidId)
+        }
+        async function searchCount(query) {
+            return (await mkt.searchVendors(query)).rows.length
+        }
+        await signupVendor({ name: 'one' })
+        await signupVendor({ name: 'one two' })
+        const thirdVendor = await signupVendor({ name: 'one', location: 'home' })
+        await signupVendor({ name: 'two', location: 'home' })
+
+        expect(await searchCount({ name: 'one' })).length.to.equal(3)
+        expect(await searchCount({ name: 'two' })).length.to.equal(2)
+        expect(await searchCount({ name: 'two', location: 'home' })).length.to.equal(1)
+        expect(await searchCount({ location: 'home' })).length.to.equal(2)
+
+        const results = await mkt.searchVendors({ name: 'one', location: 'home' })
+        expect(results.rows[0]).to.deep.equal(await mkt.getVendor(thirdVendor.vDidId))
+    })
 });

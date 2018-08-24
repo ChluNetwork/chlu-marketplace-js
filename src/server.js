@@ -11,6 +11,13 @@ app.get('/', (req, res) => respond(res, app.locals.mkt.getInfo()));
 app.get('/vendors', async (req, res) => {
     await respond(res, app.locals.mkt.getVendorIDs());
 });
+app.post('/search', async (req, res) => {
+    const query = get(req, 'body.query', {})
+    const limit = get(req, 'body.limit')
+    const offset = get(req, 'body.offset')
+    const result = await app.locals.mkt.searchVendors(query, limit, offset)
+    await respond(res, result)
+})
 app.post('/vendors', async (req, res) => {
     const didId = req.body.didId;
     await respond(res, app.locals.mkt.registerVendor(didId)); 
