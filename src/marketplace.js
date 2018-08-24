@@ -195,6 +195,16 @@ class Marketplace {
         }
     }
 
+    async searchVendors(query, limit, offset) {
+        await this.start();
+        try {
+            return await this.db.searchVendors(query, limit, offset);
+        } catch (error) {
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'Error while Searching Vendors: ' + error.message);
+        }
+    }
+
     /**
      * Get the vendor-marketplace key pair for a vendor
      * 

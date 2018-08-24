@@ -22,7 +22,6 @@ describe('Marketplace (Unit)', () => {
         mkt = new Marketplace({
             rootKeyPairPath: keyFile,
             db: {
-                password: 'test',
                 storage: ':memory:'
             },
             logger: {
@@ -225,4 +224,33 @@ describe('Marketplace (Unit)', () => {
         expect(Array.isArray(popr.attributes)).to.be.true;
         expect(popr.signature).to.equal(fakesignature);
     });
+
+    it('can search vendors by data in their profile', async () => {
+        await mkt.start()
+        async function signupVendor(didId, profile, submitSignature = true) {
+            await mkt.db.createVendor(didId, {
+                vDidId: didId,
+                profile,
+                vSignature: submitSignature ? `${didId}-signature` : null,
+                vmPrivateKey: `${didId}-privatekey`,
+                vmPubKeyMultihash: `${didId}-publickey`,
+            });
+            return await mkt.getVendor(didId)
+        }
+        async function searchCount(query) {
+            return (await mkt.searchVendors(query)).rows.length
+        }
+        await signupVendor('did:chlu:one', { name: 'one' })
+        await signupVendor('did:chlu:two', { name: 'one two' })
+        await signupVendor('did:chlu:three', { name: 'one', location: 'home' })
+        await signupVendor('did:chlu:four', { name: 'two', location: 'home' })
+
+        expect(await searchCount({ name: 'one' })).length.to.equal(3)
+        expect(await searchCount({ name: 'two' })).length.to.equal(2)
+        expect(await searchCount({ name: 'two', location: 'home' })).length.to.equal(1)
+        expect(await searchCount({ location: 'home' })).length.to.equal(2)
+
+        const results = await mkt.searchVendors({ name: 'one', location: 'home' })
+        expect(results.rows[0]).to.deep.equal(await mkt.getVendor('did:chlu:three'))
+    })
 });
