@@ -1,5 +1,9 @@
 # Chlu Marketplace Changelog
 
+## v0.3.0
+
+- implemented `/search` endpoint to search for vendors
+
 ## v0.2.5
 
 - apply same logic used in previous version to profile submissions
