@@ -68,8 +68,11 @@ async function respond(res, promise) {
         return data;
     } catch (err) {
         console.log('An error has been caught while responding to an HTTP request');
-        console.trace(err);
-        res.status((err && err.code) || 500).send((err && err.message) || err);
+        console.log(err);
+        if (err.data) console.log(err.data)
+        res.status((err && err.code) || 500)
+        if (err.data) res.json(err.data)
+        else res.send(err.message).end()
     }
 }
 
