@@ -161,7 +161,7 @@ describe('Marketplace (Unit)', () => {
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][0]).to.equal(fakevendordidid)
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][2]).to.equal(fakesignature)
         const vendorData = await mkt.getVendor(fakevendordidid)
-        expect(vendorData.profile).to.deep.equal(profile)
+        expect(vendorData.profile).to.deep.equal(setProfileFullname(profile))
     })
 
     it('can update the profile data with the vendor did document', async () => {
@@ -179,7 +179,29 @@ describe('Marketplace (Unit)', () => {
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][0]).to.equal(fakevendordid)
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][2]).to.equal(fakesignature)
         const vendorData = await mkt.getVendor(fakevendordidid)
-        expect(vendorData.profile).to.deep.equal(profile)
+        expect(vendorData.profile).to.deep.equal(setProfileFullname(profile))
+    })
+
+    it('can patch the profile data', async () => {
+        await mkt.registerVendor(fakevendordidid)
+        const fakevendordid = { id: fakevendordidid }
+        const profile = {
+            type: 'individual',
+            username: 'dev',
+            firstname: 'Developer',
+            lastname: 'Of Chlu',
+            email: 'info@chlu.io',
+            vendorAddress: 'abc'
+        }
+        await mkt.setVendorProfile(profile, fakesignature, fakevendordid)
+        const patch = {
+            firstname: 'Developer Patched'
+        }
+        await mkt.patchVendorProfile(patch, fakesignature, fakevendordid)
+        let patched = Object.assign({}, profile, { firstname: patch.firstname })
+        patched = setProfileFullname(patched)
+        const vendorData = await mkt.getVendor(fakevendordidid)
+        expect(vendorData.profile).to.deep.equal(patched)
     })
 
     it('can list vendors', async () => {

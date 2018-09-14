@@ -49,8 +49,7 @@ function setProfileFullname(profile) {
     let name = profile.firstname || profile.businessname || ''
     if (profile.lastname) name += ` ${profile.lastname}`
     if (profile.username) name += ` (${profile.username})`
-    profile.name = name 
-    return profile
+    return Object.assign({}, profile, { name })
 }
 
 async function validateProfileSignature(chluIpfs, profile, signature, publicDidDocument = null) {
