@@ -159,7 +159,7 @@ describe('Marketplace (Integration)', () => {
             signature
         )).to.be.true;
         const vendorData = await mkt.getVendor(v.publicDidDocument.id)
-        expect(vendorData.profile).to.deep.equal(profile)
+        expect(vendorData.profile).to.deep.equal(setProfileFullname(profile))
     })
 
     it('can update the profile data with the vendor did document', async () => {
@@ -182,7 +182,7 @@ describe('Marketplace (Integration)', () => {
             signature
         )).to.be.true;
         const vendorData = await mkt.getVendor(v.publicDidDocument.id)
-        expect(vendorData.profile).to.deep.equal(profile)
+        expect(vendorData.profile).to.deep.equal(setProfileFullname(profile))
     })
 
     it('can list vendors', async () => {

@@ -30,19 +30,19 @@ describe('Vendor Profiles', () => {
     })
 
     it('computes full name', () => {
-        const individualProfile = {
+        let individualProfile = {
             type: 'individual',
             firstname: 'Enrico',
             username: 'fazo96',
             lastname: 'Fasoli'
         }
-        setProfileFullname(individualProfile)
+        individualProfile = setProfileFullname(individualProfile)
         expect(individualProfile.name).to.equal('Enrico Fasoli (fazo96)')
-        const businessProfile = {
+        let businessProfile = {
             type: 'business',
             businessname: 'My Biz',
         }
-        setProfileFullname(businessProfile)
+        businessProfile = setProfileFullname(businessProfile)
         expect(businessProfile.name).to.equal('My Biz')
     })
 })
