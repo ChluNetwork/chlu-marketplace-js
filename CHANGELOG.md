@@ -1,5 +1,10 @@
 # Chlu Marketplace Changelog
 
+## v0.4.0 (WIP, Unreleased)
+
+- added `PATCH /vendors/id/profile` to patch user profile
+- added profile data validation
+
 ## v0.3.0
 
 - implemented `/search` endpoint to search for vendors
