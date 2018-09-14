@@ -6,7 +6,7 @@ const rimraf = require('rimraf');
 const path = require('path');
 const keyFile = path.join(require('os').tmpdir(), 'chlu-marketplace-key.txt');
 const { toMultihash } = require('./utils/ipfs');
-const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
+const { setProfileFullname } = require('../src/profile')
 
 describe('Marketplace (Unit)', () => {
     let mkt, fakemultihash, fakevendordidid, fakesignature;
@@ -150,15 +150,16 @@ describe('Marketplace (Unit)', () => {
     it('can update the profile data without passing the did document', async () => {
         await mkt.registerVendor(fakevendordidid)
         const profile = {
-            name: 'Developer'
+            type: 'individual',
+            username: 'dev',
+            firstname: 'Developer',
+            lastname: 'Of Chlu',
+            email: 'info@chlu.io',
+            vendorAddress: 'abc'
         }
-        await mkt.updateVendorProfile(profile, fakesignature)
-        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
-        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
-            fakevendordidid,
-            multihash,
-            fakesignature
-        )).to.be.true;
+        await mkt.setVendorProfile(profile, fakesignature)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][0]).to.equal(fakevendordidid)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][2]).to.equal(fakesignature)
         const vendorData = await mkt.getVendor(fakevendordidid)
         expect(vendorData.profile).to.deep.equal(profile)
     })
@@ -167,15 +168,16 @@ describe('Marketplace (Unit)', () => {
         await mkt.registerVendor(fakevendordidid)
         const fakevendordid = { id: fakevendordidid }
         const profile = {
-            name: 'Developer'
+            type: 'individual',
+            username: 'dev',
+            firstname: 'Developer',
+            lastname: 'Of Chlu',
+            email: 'info@chlu.io',
+            vendorAddress: 'abc'
         }
-        await mkt.updateVendorProfile(profile, fakesignature, fakevendordid)
-        const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
-        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
-            fakevendordid,
-            multihash,
-            fakesignature
-        )).to.be.true;
+        await mkt.setVendorProfile(profile, fakesignature, fakevendordid)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][0]).to.equal(fakevendordid)
+        expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.args[0][2]).to.equal(fakesignature)
         const vendorData = await mkt.getVendor(fakevendordidid)
         expect(vendorData.profile).to.deep.equal(profile)
     })
@@ -228,9 +230,18 @@ describe('Marketplace (Unit)', () => {
     it('can search vendors by data in their profile', async () => {
         await mkt.start()
         async function signupVendor(didId, profile, submitSignature = true) {
+            const preparedProfile = {
+                type: 'individual',
+                username: profile.name,
+                firstname: profile.name,
+                lastname: 'Test',
+                location: profile.location,
+                email: 'test@chlu.io',
+                vendorAddress: 'abc'
+            }
             await mkt.db.createVendor(didId, {
                 vDidId: didId,
-                profile,
+                profile: setProfileFullname(preparedProfile),
                 vSignature: submitSignature ? `${didId}-signature` : null,
                 vmPrivateKey: `${didId}-privatekey`,
                 vmPubKeyMultihash: `${didId}-publickey`,
