@@ -8,6 +8,7 @@ const tmpDir = path.join(require('os').tmpdir(), 'chlu-marketplace-tests');
 const ChluDID = require('chlu-did/src')
 const ChluSQLIndex = require('chlu-ipfs-support/src/modules/orbitdb/indexes/sql')
 const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
+const { setProfileFullname } = require('../src/profile')
 
 describe('Marketplace (Integration)', () => {
     let mkt, DID;
@@ -142,11 +143,16 @@ describe('Marketplace (Integration)', () => {
         const v = await getRandomVendor();
         await mkt.registerVendor(v.publicDidDocument.id)
         const profile = {
-            name: 'Developer'
+            type: 'individual',
+            username: 'dev',
+            firstname: 'Developer',
+            lastname: 'Of Chlu',
+            email: 'info@chlu.io',
+            vendorAddress: 'abc'
         }
         const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
         const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
-        await mkt.updateVendorProfile(profile, signature)
+        await mkt.setVendorProfile(profile, signature)
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             v.publicDidDocument.id,
             multihash,
@@ -160,11 +166,16 @@ describe('Marketplace (Integration)', () => {
         const v = await getRandomVendor();
         await mkt.registerVendor(v.publicDidDocument.id)
         const profile = {
-            name: 'Developer'
+            type: 'individual',
+            username: 'dev',
+            firstname: 'Developer',
+            lastname: 'Of Chlu',
+            email: 'info@chlu.io',
+            vendorAddress: 'abc'
         }
         const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
         const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
-        await mkt.updateVendorProfile(profile, signature, v.publicDidDocument)
+        await mkt.setVendorProfile(profile, signature, v.publicDidDocument)
         expect(mkt.chluIpfs.didIpfsHelper.verifyMultihash.calledWith(
             v.publicDidDocument,
             multihash,
@@ -242,9 +253,18 @@ describe('Marketplace (Integration)', () => {
                 const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(vendorData.vmPubKeyMultihash, v);
                 await mkt.updateVendorSignature(signature);
             }
-            const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
+            const preparedProfile = {
+                type: 'individual',
+                username: profile.name,
+                firstname: profile.name,
+                location: profile.location,
+                lastname: 'Test',
+                email: 'info@chlu.io',
+                vendorAddress: 'abc'
+            }
+            const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(preparedProfile))))
             const signature = await mkt.chluIpfs.didIpfsHelper.signMultihash(multihash, v);
-            await mkt.updateVendorProfile(profile, signature)
+            await mkt.setVendorProfile(setProfileFullname(preparedProfile), signature)
             return await mkt.getVendor(vendorData.vDidId)
         }
         async function searchCount(query) {

@@ -14,7 +14,7 @@ describe('HTTP API', () => {
                 mSignature: 'fakesignature'
             }),
             updateVendorSignature: sinon.stub().resolves(),
-            updateVendorProfile: sinon.stub().resolves(),
+            setVendorProfile: sinon.stub().resolves(),
             generatePoPR: sinon.stub().resolves(),
             getVendorIDs: sinon.stub().resolves([
                 'ven1', 'ven2'
@@ -135,7 +135,7 @@ describe('HTTP API', () => {
         await api.post('/vendors/ven1/profile')
             .send({ signature, profile })
             .expect(200);
-        expect(mkt.updateVendorProfile.calledWith(profile, signature))
+        expect(mkt.setVendorProfile.calledWith(profile, signature))
             .to.be.true;
     });
 

@@ -1,12 +1,13 @@
 const EventEmitter = require('events');
 const ChluIPFS = require('chlu-ipfs-support');
-const { createDAGNode, getDAGNodeMultihash } = require('chlu-ipfs-support/src/utils/ipfs')
 const Logger = require('chlu-ipfs-support/src/utils/logger')
 const DB = require('./db');
 const path = require('path');
 const moment = require('moment')
 const HttpError = require('./utils/error');
 const { get, set } = require('lodash')
+const { validateDidId } = require('./utils/did')
+const { validateProfileSignature, validateProfile, setProfileFullname } = require('./profile')
 
 /**
  * Chlu Marketplace provides the required methods for
@@ -328,28 +329,50 @@ class Marketplace {
         }
     }
 
-    async updateVendorProfile(profile, signature, publicDidDocument = null) {
-        const id = signature.creator
+    async setVendorProfile(profile, signature, publicDidDocument = null) {
+        const id = get(signature, 'creator')
         validateDidId(id);
         await this.start()
         try {
-            const multihash = getDAGNodeMultihash(await createDAGNode(Buffer.from(JSON.stringify(profile))))
-            let valid = false
-            if (get(publicDidDocument, 'id') === id) {
-                // Use the DID document provided
-                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(publicDidDocument, multihash, signature);
-            } else {
-                // just use the ID and fetch the DID from Chlu
-                // wait until the DID gets replicated into the marketplace, don't fail if not found
-                valid = await this.chluIpfs.didIpfsHelper.verifyMultihash(id, multihash, signature, true);
-            }
+            let valid = validateProfileSignature(this.chluIpfs, profile, signature, publicDidDocument)
             let found = false
             if (valid) {
-                found = await this.db.updateVendor(id, { profile })
+                const errors = validateProfile(profile)
+                if (errors) throw new HttpError(400, 'Profile is not valid', errors)
+                found = await this.db.updateVendor(id, {
+                    profile: setProfileFullname(profile)
+                })
             } else {
                 throw new HttpError(400, 'Signature is not valid')
             }
             if (!found) throw new HttpError(404, 'Vendor not found')
+        } catch (error){
+            if (error instanceof HttpError) throw error;
+            throw new HttpError(500, 'An error has occurred: ' + error.message);
+        }
+    }
+
+    async patchVendorProfile(profile, signature, publicDidDocument = null) {
+        const id = get(signature, 'creator')
+        validateDidId(id);
+        await this.start()
+        try {
+            let valid = validateProfileSignature(this.chluIpfs, profile, signature, publicDidDocument)
+            if (valid) {
+                const vendorData = await this.db.getVendor(id)
+                if (vendorData) {
+                    const newProfile = Object.assign(vendorData.profile || {}, profile)
+                    const errors = validateProfile(newProfile)
+                    if (errors) throw new HttpError(400, 'Profile is not valid', errors)
+                    await this.db.updateVendor(id, {
+                        profile: setProfileFullname(newProfile)
+                    })
+                } else {
+                    throw new HttpError(404, 'Vendor not found')
+                }
+            } else {
+                throw new HttpError(400, 'Signature is not valid')
+            }
         } catch (error){
             if (error instanceof HttpError) throw error;
             throw new HttpError(500, 'An error has occurred: ' + error.message);
@@ -416,16 +439,6 @@ class Marketplace {
             throw new HttpError(500, 'An error has occurred: ' + error ? error.message : 'Unknown error');
         }
     }
-}
-
-function validateDidId(didId) {
-    try {
-        const valid = typeof didId === 'string' && didId.indexOf('did:chlu:') === 0
-        if (!valid) throw Error()
-    } catch (error) {
-        throw HttpError(400, 'DID ID is invalid: ' + didId);
-    }
-    return true
 }
 
 module.exports = Marketplace;
