@@ -1,5 +1,9 @@
 # Chlu Marketplace Changelog
 
+## v0.4.1
+
+- updated deps
+
 ## v0.4.0
 
 - added `PATCH /vendors/id/profile` to patch user profile

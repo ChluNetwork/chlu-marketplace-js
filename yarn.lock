@@ -1698,12 +1698,11 @@ check-error@^1.0.1:
     elliptic "^6.4.0"
     js-sha3 "^0.7.0"
 
-"chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#semver:~0.2.0":
-  version "0.2.3"
-  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/438367aa4532357390aa71a25c008012736d326c"
+"chlu-ipfs-support@ChluNetwork/chlu-ipfs-support#semver:~0.3.1":
+  version "0.3.1"
+  resolved "https://codeload.github.com/ChluNetwork/chlu-ipfs-support/tar.gz/67a1b6bed9abccd80460922ce4ddb0295ea81e16"
   dependencies:
     axios "^0.18.0"
-    blockcypher ChluNetwork/node-client
     brorand "^1.1.0"
     chlu-did "ChluNetwork/chlu-did#semver:~0.1.0"
     chlu-wallet-support-js "ChluNetwork/chlu-wallet-support-js#semver:~0.1.1"
